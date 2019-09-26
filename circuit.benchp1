@@ -1,0 +1,49 @@
+# circuit.bench for project 1
+# below represents how you would generate the needed circuit design for project 1 
+# 3 inputs
+# 1 output
+#4 gates 
+
+Input(A)
+Input(B)
+Input(C)
+
+OUTPUT(K)
+f = NOT(B)
+g = AND(A,B)
+h = AND(f,C)
+K = OR( g,h) 
+
+# Below represents the fault list associated with the above circuit design 
+# Allfaults 
+
+A-SA-0
+A-SA-1
+B-SA-0
+B-SA-1
+C-SA-0
+C-SA-1
+f-SA-0
+f-SA-1
+f-IN-B-SA-0
+f-IN-B-SA-1
+g-SA-0
+g-SA-1
+g-IN-A-SA-0
+g-IN-A-SA-1
+g-IN-B-SA-0
+g-IN-B-SA-1
+h-SA-0
+h-SA-1
+h-IN-f-SA-0
+h-IN-f-SA-1
+h-IN-C-SA-0
+h-IN-C-SA-1
+K-SA-0
+K-SA-1
+K-IN-G-SA-0
+K-IN-G-SA-1
+K-IN-H-SA-1
+K-IN-H-SA-0
+
+# total faults =28 
