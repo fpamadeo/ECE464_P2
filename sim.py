@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import copy
 
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
@@ -8,6 +9,130 @@ import os
 # 4. basic_sim: the actual simulation
 # 5. main: The main function
 
+
+# FUNCTION: 
+def genFaultList(circuit):
+    # Open a txt file to write our things on
+    # If file doesn't exist, it will be made using the name given
+    output = open("fault_list.txt", "w")
+
+    # Creating a list to be returned to the main code
+    allFaults = []
+
+    # Go over all the inputs and...
+    for x in circuit["INPUTS"][1]:
+        # ... write input-SA-0/1 to ...
+        toWrite = x[5:] + "-SA-"
+        # ... the txt file,...
+        output.write(toWrite+"0\n")
+        output.write(toWrite+"1\n\n")
+        # ... the list, and ...
+        allFaults.append(toWrite+"0")
+        allFaults.append(toWrite+"1")
+        # ... onto the screen
+        print(toWrite+"0\n"+toWrite+"1")
+
+    # Go over all the gates and ...
+    for x in circuit["GATES"][1]:
+        # ... do the same thing to the gate outputs
+        toWrite = x[5:] + "-SA-"
+        output.write(toWrite+"0\n")
+        output.write(toWrite+"1\n")
+        allFaults.append(toWrite+"0")
+        allFaults.append(toWrite+"1")
+        print(toWrite+"0\n"+toWrite+"1")
+
+        # ... Also, go over all of the gates' inputs and ...
+        for y in circuit[x][1]:
+            # do the same thing except name it OUTPUT-IN-INPUT-SA-0/1
+            toWrite0 = x[5:] + "-IN-" + y[5:] + "-SA-"
+            output.write(toWrite0+"0\n")
+            output.write(toWrite0+"1\n")
+            allFaults.append(toWrite0+"0")
+            allFaults.append(toWrite0+"1")
+            print(toWrite0+"0\n"+toWrite0+"1")
+        output.write("\n")
+    input("Press Enter To Continue...")
+    return allFaults
+
+# FUNCTION:
+def readFaults(allFaults, faultFile):
+    # Read the the given file
+    inFault = open(faultFile, "r")
+    
+    # Create list of active faults 
+    activeFaults = []
+
+    # For each line in the txt file, see if they're part of the available faults
+    for x in inFault:
+        # Initializing output variable each input line
+        output = ""
+
+        # Do nothing else if empty lines, ...
+        if (x == "\n"):
+            continue
+        # ... or any comments
+        if (x[0] == "#"):
+            continue
+
+        # Removing the the newlines at the end and then output it to the txt file
+        x = x.replace("\n", "")
+
+        # Removing spaces
+        x = x.replace(" ", "")
+
+        print("x="+x)
+        flag  = False
+        for y in allFaults:
+            if x == y:
+                print("GOT IN")
+                flag = True
+                break
+        if flag:
+            activeFaults.append([x,False]) # if they are, add them to the list
+        else:
+            print("ERROR: Fault can not exist in the circuit: " + x) # Otherwise, tell the user
+    return activeFaults
+
+# FUNCTION:
+def fault_sim(circuit, activeFaults, inputCircuit,goodOutput):
+    toOutput = []
+    for x in activeFaults:
+        output = ''
+        circuit = copy.deepcopy(inputCircuit)
+        
+        xSplit = x[0].split("-SA-")
+        
+
+        # Get the value to which the node is stuck at
+        value = xSplit[1]
+
+        currentFault = "wire_" + xSplit[0]
+
+        if "-IN-" not in currentFault:
+            circuit[currentFault][3] = value
+            circuit[currentFault][2] = True
+
+        else:
+            currentFault = currentFault.split("-IN-")
+            circuit[currentFault[0]][1].remove("wire_"+currentFault[1])
+            circuit[currentFault[0]][1].append(value)
+        basic_sim(circuit)
+        
+        for y in circuit["OUTPUTS"][1]:
+            if not circuit[y][2]:
+                output = "NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED"
+                break
+            output = str(circuit[y][3]) + output
+        if output != goodOutput:
+            x[1] = True
+            toOutput.append(x[0] + " -> " + output)
+    if len(toOutput) != 0:
+        print("detected:")
+        for line in toOutput:
+            print(line)
+    return activeFaults
+            
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Neatly prints the Circuit Dictionary:
@@ -154,17 +279,23 @@ def netRead(netName):
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: calculates the output value for each logic gate
 def gateCalc(circuit, node):
-    
-    # terminal will contain all the input wires of this logic gate (node)
-    terminals = list(circuit[node][1])  
+    terminals = []
 
+    # terminal will contain all the input wires of this logic gate (node)
+    for gate in list(circuit[node][1]):
+        
+        if gate in ['0','1','U']:
+            terminals.append(gate)
+        else:
+            terminals.append(circuit[gate][3])
+    # terminals = list(circuit[node][1])  
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
-        if circuit[terminals[0]][3] == '0':
+        if terminals[0] == '0':
             circuit[node][3] = '1'
-        elif circuit[terminals[0]][3] == '1':
+        elif terminals[0] == '1':
             circuit[node][3] = '0'
-        elif circuit[terminals[0]][3] == "U":
+        elif terminals[0] == "U":
             circuit[node][3] = "U"
         else:  # Should not be able to come here
             return -1
@@ -180,10 +311,10 @@ def gateCalc(circuit, node):
         # if there is a 0 at any input terminal, AND output is 0. If there is an unknown terminal, mark the flag
         # Otherwise, keep it at 1
         for term in terminals:  
-            if circuit[term][3] == '0':
+            if term == '0':
                 circuit[node][3] = '0'
                 break
-            if circuit[term][3] == "U":
+            if term == "U":
                 unknownTerm = True
 
         if unknownTerm:
@@ -201,10 +332,10 @@ def gateCalc(circuit, node):
         # if there is a 0 terminal, NAND changes the output to 1. If there is an unknown terminal, it
         # changes to "U" Otherwise, keep it at 0
         for term in terminals:
-            if circuit[term][3] == '0':
+            if term == '0':
                 circuit[node][3] = '1'
                 break
-            if circuit[term][3] == "U":
+            if term == "U":
                 unknownTerm = True
                 break
 
@@ -222,10 +353,10 @@ def gateCalc(circuit, node):
 
         # if there is a 1 terminal, OR changes the output to 1. Otherwise, keep it at 0
         for term in terminals:
-            if circuit[term][3] == '1':
+            if term == '1':
                 circuit[node][3] = '1'
                 break
-            if circuit[term][3] == "U":
+            if term == "U":
                 unknownTerm = True
 
         if unknownTerm:
@@ -242,10 +373,10 @@ def gateCalc(circuit, node):
 
         # if there is a 1 terminal, NOR changes the output to 0. Otherwise, keep it at 1
         for term in terminals:
-            if circuit[term][3] == '1':
+            if term == '1':
                 circuit[node][3] = '0'
                 break
-            if circuit[term][3] == "U":
+            if term == "U":
                 unknownTerm = True
         if unknownTerm:
             if circuit[node][3] == '1':
@@ -259,9 +390,9 @@ def gateCalc(circuit, node):
 
         # if there are an odd number of terminals, XOR outputs 1. Otherwise, it should output 0
         for term in terminals:
-            if circuit[term][3] == '1':
+            if term == '1':
                 count += 1  # For each 1 bit, add one count
-            if circuit[term][3] == "U":
+            if term == "U":
                 circuit[node][3] = "U"
                 return circuit
 
@@ -279,9 +410,9 @@ def gateCalc(circuit, node):
 
         # if there is a single 1 terminal, XNOR outputs 0. Otherwise, it outputs 1
         for term in terminals:
-            if circuit[term][3] == '1':
+            if term == '1':
                 count += 1  # For each 1 bit, add one count
-            if circuit[term][3] == "U":
+            if term == "U":
                 circuit[node][3] = "U"
                 return circuit
 
@@ -346,7 +477,9 @@ def basic_sim(circuit):
 
         # Check if the terminals have been accessed
         for term in circuit[curr][1]:
-            if not circuit[term][2]:
+            if term in ['1','0','U']:
+                continue
+            elif not circuit[term][2]:
                 term_has_value = False
                 break
 
@@ -359,11 +492,14 @@ def basic_sim(circuit):
                 print(circuit)
                 return circuit
 
-            print("Progress: updating " + curr + " = " + circuit[curr][3] + " as the output of " + circuit[curr][0] + " for:")
-            for term in circuit[curr][1]:
-                print(term + " = " + circuit[term][3])
-            print("\nPress Enter to Continue...")
-            input()
+            #print("Progress: updating " + curr + " = " + circuit[curr][3] + " as the output of " + circuit[curr][0] + " for:")
+            #for term in circuit[curr][1]:
+            #    if term in ['1','0','U']:
+            #        print(term + " = "+ term)
+            #    else:
+            #        print(term + " = " + circuit[term][3])
+            # print("\nPress Enter to Continue...")
+            # input()
 
         else:
             # If the terminals have not been accessed yet, append the current node at the end of the queue
@@ -402,8 +538,12 @@ def main():
     print("\n Finished processing benchmark file and built netlist dictionary: \n")
     printCkt(circuit)
 
+    allFaults = genFaultList(circuit)
+    faultFile = "f_list.txt"
+    activeFaults = readFaults(allFaults, faultFile)
+    
     # keep an initial (unassigned any value) copy of the circuit for an easy reset
-    newCircuit = circuit
+    newCircuit = copy.deepcopy(circuit)
 
     # Select input file, default is input.txt
     while True:
@@ -477,7 +617,8 @@ def main():
             circuit = newCircuit
             print("...move on to next input\n")
             continue
-
+        
+        inputCircuit = copy.deepcopy(circuit)
 
         circuit = basic_sim(circuit)
         print("\n *** Finished simulation - resulting circuit: \n")
@@ -493,17 +634,20 @@ def main():
         print(line + " -> " + output + " written into output file. \n")
         outputFile.write(" -> " + output + "\n")
 
+        # Now, work on each given fault
+        activeFaults = fault_sim(circuit,activeFaults,inputCircuit,output)
+
+        input("Press Enter to Continue...")
+        
         # After each input line is finished, reset the circuit
         print("\n *** Now resetting circuit back to unknowns... \n")
        
-        for key in circuit:
-            if (key[0:5]=="wire_"):
-                circuit[key][2] = False
-                circuit[key][3] = 'U'
+        circuit = copy.deepcopy(newCircuit)
 
         print("\n circuit after resetting: \n")
         printCkt(circuit)
         print("\n*******************\n")
+        input("Press Enter to Continue...")
         
     outputFile.close
     #exit()
