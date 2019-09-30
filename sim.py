@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import copy
+import math
 
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
@@ -81,11 +82,9 @@ def readFaults(allFaults, faultFile):
         # Removing spaces
         x = x.replace(" ", "")
 
-        print("x="+x)
         flag  = False
         for y in allFaults:
             if x == y:
-                print("GOT IN")
                 flag = True
                 break
         if flag:
@@ -95,7 +94,7 @@ def readFaults(allFaults, faultFile):
     return activeFaults
 
 # FUNCTION:
-def fault_sim(circuit, activeFaults, inputCircuit,goodOutput):
+def fault_sim(circuit, activeFaults, inputCircuit,goodOutput,faultFile):
     toOutput = []
     for x in activeFaults:
         output = ''
@@ -128,9 +127,13 @@ def fault_sim(circuit, activeFaults, inputCircuit,goodOutput):
             x[1] = True
             toOutput.append(x[0] + " -> " + output)
     if len(toOutput) != 0:
+        faultFile.write("detected:\n")
         print("detected:")
         for line in toOutput:
             print(line)
+            faultFile.write('\t'+line+'\n')
+        print("\n*******************\n")
+        faultFile.write('\n')
     return activeFaults
             
 
@@ -516,8 +519,24 @@ def main():
 
     # Used for file access
     script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
-
+    genOnly = False
+    cktOnly = False
     print("Circuit Simulator:")
+    
+    while True:
+        print("\n Pick a selection:")
+        print(" (1) Fault generator")
+        print(" (2) Circuit Simulator")
+        print(" (3) Fault Simulator")
+        userInput = input("\n Select from 1-3: ")
+        if userInput == "1":
+            genOnly = True
+            break
+        elif userInput == "2":
+            cktOnly = True
+            break
+        elif userInput == '3':
+            break
 
     # Select circuit benchmark file, default is circuit.bench
     while True:
@@ -538,10 +557,14 @@ def main():
     print("\n Finished processing benchmark file and built netlist dictionary: \n")
     printCkt(circuit)
 
-    allFaults = genFaultList(circuit)
-    faultFile = "f_list.txt"
-    activeFaults = readFaults(allFaults, faultFile)
+    if not cktOnly:
+        allFaults = genFaultList(circuit)
+        faultFile = "f_list.txt"
+        activeFaults = readFaults(allFaults, faultFile)
     
+    if genOnly:
+        exit()
+
     # keep an initial (unassigned any value) copy of the circuit for an easy reset
     newCircuit = copy.deepcopy(circuit)
 
@@ -577,6 +600,8 @@ def main():
     print("\n *** Simulating the" + inputName + " file and will output in" + outputName + "*** \n")
     inputFile = open(inputName, "r")
     outputFile = open(outputName, "w")
+    if not cktOnly:
+        faultFile = open("fault_sim_result.txt","w")
 
     # Runs the simulator for each line of the input file
     for line in inputFile:
@@ -593,7 +618,8 @@ def main():
         # Removing the the newlines at the end and then output it to the txt file
         line = line.replace("\n", "")
         outputFile.write(line)
-
+        if not cktOnly:
+            faultFile.write(line)
         # Removing spaces
         line = line.replace(" ", "")
         
@@ -633,9 +659,11 @@ def main():
         print("\n *** Summary of simulation: ")
         print(line + " -> " + output + " written into output file. \n")
         outputFile.write(" -> " + output + "\n")
-
+        if not cktOnly:
+            faultFile.write(" -> " + output + "\n")
         # Now, work on each given fault
-        activeFaults = fault_sim(circuit,activeFaults,inputCircuit,output)
+        if not cktOnly:
+            activeFaults = fault_sim(circuit,activeFaults,inputCircuit,output,faultFile)
 
         input("Press Enter to Continue...")
         
@@ -648,7 +676,16 @@ def main():
         printCkt(circuit)
         print("\n*******************\n")
         input("Press Enter to Continue...")
-        
+    
+    if not cktOnly:
+        i = 0
+        for x in activeFaults:
+            if x[1]:
+                i += 1    
+        print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
+        faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
+    
+        faultFile.close
     outputFile.close
     #exit()
 
