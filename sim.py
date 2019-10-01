@@ -116,8 +116,13 @@ def fault_sim(circuit, activeFaults, inputCircuit,goodOutput,faultFile):
             currentFault = currentFault.split("-IN-")
             circuit[currentFault[0]][1].remove("wire_"+currentFault[1])
             circuit[currentFault[0]][1].append(value)
+        #print("x="+str(x))
+        #printCkt(circuit)
+        
         basic_sim(circuit)
         
+        #print("AFTER:")
+        #printCkt(circuit)
         for y in circuit["OUTPUTS"][1]:
             if not circuit[y][2]:
                 output = "NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED"
@@ -291,6 +296,8 @@ def gateCalc(circuit, node):
             terminals.append(gate)
         else:
             terminals.append(circuit[gate][3])
+    
+    # print(terminals)
     # terminals = list(circuit[node][1])  
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
@@ -421,9 +428,9 @@ def gateCalc(circuit, node):
 
         # check how many 1's we counted
         if count % 2 == 1:  # if more than one 1, we know it's going to be 0.
-            circuit[node][3] = '1'
-        else:  # Otherwise, the output is equal to how many 1's there are
             circuit[node][3] = '0'
+        else:  # Otherwise, the output is equal to how many 1's there are
+            circuit[node][3] = '1'
         return circuit
 
     # Error detection... should not be able to get at this point
@@ -475,6 +482,9 @@ def basic_sim(circuit):
         curr = queue[0]
         queue.remove(curr)
 
+        if circuit[curr][2]:
+            continue
+
         # initialize a flag, used to check if every terminal has been accessed
         term_has_value = True
 
@@ -501,8 +511,9 @@ def basic_sim(circuit):
             #        print(term + " = "+ term)
             #    else:
             #        print(term + " = " + circuit[term][3])
-            # print("\nPress Enter to Continue...")
-            # input()
+            # 
+            #print("\nPress Enter to Continue...")
+            #input()
 
         else:
             # If the terminals have not been accessed yet, append the current node at the end of the queue
@@ -555,16 +566,17 @@ def main():
     print("\n Reading " + cktFile + " ... \n")
     circuit = netRead(cktFile)
     print("\n Finished processing benchmark file and built netlist dictionary: \n")
-    printCkt(circuit)
+    #printCkt(circuit)
 
     if not cktOnly:
         allFaults = genFaultList(circuit)
+        if genOnly:
+            exit()
         faultFile = "f_list.txt"
         activeFaults = readFaults(allFaults, faultFile)
-    
-    if genOnly:
-        exit()
-
+        if len(activeFaults) < 1:
+            print("ERROR: No compatible faults found in f_list.txt")
+            exit()
     # keep an initial (unassigned any value) copy of the circuit for an easy reset
     newCircuit = copy.deepcopy(circuit)
 
@@ -624,10 +636,9 @@ def main():
         line = line.replace(" ", "")
         
         print("\n before processing circuit dictionary...")
-        printCkt(circuit)
+        #printCkt(circuit)
         print("\n ---> Now ready to simulate INPUT = " + line)
         circuit = inputRead(circuit, line)
-        printCkt(circuit)
 
         if circuit == -1:
             print("INPUT ERROR: INSUFFICIENT BITS")
@@ -643,12 +654,13 @@ def main():
             circuit = newCircuit
             print("...move on to next input\n")
             continue
-        
+
+        #printCkt(circuit)
         inputCircuit = copy.deepcopy(circuit)
 
         circuit = basic_sim(circuit)
         print("\n *** Finished simulation - resulting circuit: \n")
-        printCkt(circuit)
+        #printCkt(circuit)
 
         for y in circuit["OUTPUTS"][1]:
             if not circuit[y][2]:
@@ -664,6 +676,7 @@ def main():
         # Now, work on each given fault
         if not cktOnly:
             activeFaults = fault_sim(circuit,activeFaults,inputCircuit,output,faultFile)
+            
 
         input("Press Enter to Continue...")
         
@@ -672,10 +685,9 @@ def main():
        
         circuit = copy.deepcopy(newCircuit)
 
-        print("\n circuit after resetting: \n")
-        printCkt(circuit)
+        #print("\n circuit after resetting: \n")
+        #printCkt(circuit)
         print("\n*******************\n")
-        input("Press Enter to Continue...")
     
     if not cktOnly:
         i = 0

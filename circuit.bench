@@ -1,28 +1,12 @@
-# 4-to-1 Multiplexer
-# 6 Inputs
-# 2 NOTs
-# 4 ANDs
-# 1 OR (4-1)
-# 1 OUTPUT
+INPUT(A) 
+INPUT(B) 
+INPUT(C) 
 
-# INPUTS:
-INPUT(Ctrl1)
-INPUT(Ctrl2)
-INPUT(A)
-INPUT(B)
-INPUT(C)
-INPUT(D)
+OUTPUT(K) 
 
-# OUTPUT/S:
-OUTPUT(OUT)
+f = NOT(B) 
 
-# GATES:
-Ctrl1NOT = NOT(Ctrl1)
-Ctrl2NOT = NOT(Ctrl2)
+g = AND(A, B)
+h = AND(f, C)  
 
-AND1 = AND(A, Ctrl2NOT, Ctrl1NOT)
-AND2 = AND(B, Ctrl2NOT, Ctrl1)
-AND3 = AND(C, Ctrl2   , Ctrl1NOT)
-AND4 = AND(D, Ctrl2   , Ctrl1)
-
-OUT = OR(AND1, AND2, AND3, AND4)
+K = OR(g, h)
