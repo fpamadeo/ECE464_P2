@@ -10,6 +10,8 @@ import math
 # 4. basic_sim: the actual simulation
 # 5. main: The main function
 
+lfsrSeq = ""
+lfsrSeqBin = []
 
 # FUNCTION: 
 def genFaultList(circuit):
@@ -436,6 +438,25 @@ def gateCalc(circuit, node):
     # Error detection... should not be able to get at this point
     return circuit[node][0]
 
+#LFSR acutal
+def linearCalc(initalVal):
+    global lfsrSeq, lfsrSeqBin
+    lfsrSeq = initalVal + lfsrSeq
+    lfsrSeqBin.append(initalVal)
+    temp = initalVal[0] #Get the MSB
+    sBinary = initalVal[-7:]
+
+    xorVals = int(sBinary[3:6]) ^ int(temp+temp+temp)
+    sBinary = sBinary[0:3] + repr(xorVals).zfill(3) + sBinary[6:7] + temp #final value
+    return sBinary
+ 
+#LSFR looper
+#seed has to be before 255
+def lsfrGen(seed):
+    initalVal = bin(seed)[2:].zfill(8)
+    currentVal = linearCalc(initalVal)
+    while initalVal != currentVal:
+        currentVal = linearCalc(currentVal)
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Updating the circuit dictionary with the input line, and also resetting the gates and output lines
@@ -567,6 +588,42 @@ def main():
     circuit = netRead(cktFile)
     print("\n Finished processing benchmark file and built netlist dictionary: \n")
     #printCkt(circuit)
+
+    while True:
+        print("What is your seed value in decimal: ")
+        seed = input()
+        if seed.isdigit():
+            if ((seed < "255") or (seed > "0")): 
+                break
+
+    lsfrGen(int(seed)) #creates lfsr based on the seed
+
+    #creates the TV_D.txt       
+    TVD = open(os.path.join(script_dir, "TV_D.txt"), "w")
+    for x in range(0, 255):
+        inputSize = circuit["INPUT_WIDTH"][1]
+        currVal = lfsrSeqBin[x] #curr s0->s1->s2
+        leftoverSize = inputSize % 8
+        inputSize = int((inputSize - leftoverSize)/8)
+        TVD.write(currVal[-1*leftoverSize:] + (currVal*inputSize) + "\n")
+    TVD.close()
+
+    #creates the TV_E.txt
+    TVE = open(os.path.join(script_dir, "TV_E.txt"), "w")
+    inputSize = circuit["INPUT_WIDTH"][1]
+    start, end = len(lfsrSeq)-inputSize, len(lfsrSeq)
+    for x in range(0, 255):
+        if(start < 0):
+            start = 2040 + start
+        if(end < 0):
+            end = 2040 + end
+        if(start < end):
+            TVE.write(lfsrSeq[start:end] + "\n")
+        elif(start > end):
+            TVE.write(lfsrSeq[start:] + lfsrSeq[0:end] + "\n")
+        start -= 8
+        end -= 8
+    TVE.close() 
 
     if not cktOnly:
         allFaults = genFaultList(circuit)
