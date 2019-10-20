@@ -2,6 +2,8 @@ from __future__ import print_function
 import os
 import copy
 import math
+import threading
+import time
 
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
@@ -9,9 +11,9 @@ import math
 # 3. inputRead: function that will update the circuit dictionary made in netRead to hold the line values
 # 4. basic_sim: the actual simulation
 # 5. main: The main function
-
-lfsrSeq = ""
-lfsrSeqBin = []
+# 6. lfsrGen: uses lfsrCalc to simulate a linear lfsr @ 2,3,4 and return an array[0-254]. Last one holds all strins combined
+# 7. TVD_gen: Geneartes an array to be used to create TV_D
+# 8. TVE_gen: Geneartes an array to be used to create TV_E
 
 # FUNCTION: 
 def genFaultList(circuit):
@@ -176,10 +178,13 @@ def netRead(netName):
     gates = []      # array of the gate list
     inputBits = 0   # the number of inputs needed in this given circuit
 
-
     # main variable to hold the circuit netlist, this is a dictionary in Python, where:
     # key = wire name; value = a list of attributes of the wire
     circuit = {}
+
+    #Fast processing SAM
+    completed_queue = []
+    leftovers_queue = []
 
     # Reading in the netlist file line by line
     for line in netFile:
@@ -191,6 +196,7 @@ def netRead(netName):
         # Removing spaces and newlines
         line = line.replace(" ","")
         line = line.replace("\n","")
+        line = line.upper()
 
         # NOT Reading any comments
         if (line[0] == "#"):
@@ -216,6 +222,8 @@ def netRead(netName):
                 msg = "NETLIST ERROR: INPUT LINE \"" + line + "\" ALREADY EXISTS PREVIOUSLY IN NETLIST"
                 print(msg + "\n")
                 return msg
+
+            completed_queue.append(line)
 
             # Appending to the inputs array and update the inputBits
             inputs.append(line)
@@ -250,22 +258,45 @@ def netRead(netName):
             print(msg+"\n")
             return msg
 
-        # Appending the dest name to the gate list
-        gates.append(gateOut)
-
         lineSpliced = lineSpliced[1].split("(") # splicing the line again at the "("  to get the gate logic
         logic = lineSpliced[0].upper()
-
 
         lineSpliced[1] = lineSpliced[1].replace(")", "")
         terms = lineSpliced[1].split(",")  # Splicing the the line again at each comma to the get the gate terminals
         # Turning each term into an integer before putting it into the circuit dictionary
         terms = ["wire_" + x for x in terms]
 
-        # add the gate output wire to the circuit dictionary with the dest as the key
+            # add the gate output wire to the circuit dictionary with the dest as the key
         circuit[gateOut] = [logic, terms, False, 'U']
-        print(gateOut)
-        print(circuit[gateOut])
+
+        #following check if all terms have been discovered
+        temp_to_check_terms_available = len(terms)
+        for t in terms:
+            if t in completed_queue:
+                temp_to_check_terms_available -= 1
+        
+        if temp_to_check_terms_available == 0: #if 0 all terms have been discovered already
+            # Appending the dest name to the gate list
+            gates.append(gateOut)
+            completed_queue.append(gateOut)
+        else:
+            leftovers_queue.append(gateOut)
+
+    #Finish up the ordering SAM
+    while len(leftovers_queue):
+        currgate = leftovers_queue[0]
+        terms = circuit[currgate][1]
+        temp_to_check_terms_available = len(terms)
+        for t in terms:
+            if t in completed_queue:
+                temp_to_check_terms_available -= 1
+        if temp_to_check_terms_available == 0:
+            gates.append(currgate)
+            completed_queue.append(currgate)
+            del leftovers_queue[0]
+        else:
+            leftovers_queue.append(currgate)
+            del leftovers_queue[0]
 
     # now after each wire is built into the circuit dictionary,
     # add a few more non-wire items: input width, input array, output array, gate list
@@ -284,7 +315,6 @@ def netRead(netName):
 
 
     return circuit
-
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: calculates the output value for each logic gate
@@ -440,9 +470,6 @@ def gateCalc(circuit, node):
 
 #LFSR acutal
 def linearCalc(initalVal):
-    global lfsrSeq, lfsrSeqBin
-    lfsrSeq = initalVal + lfsrSeq
-    lfsrSeqBin.append(initalVal)
     temp = initalVal[0] #Get the MSB
     sBinary = initalVal[-7:]
 
@@ -452,11 +479,23 @@ def linearCalc(initalVal):
  
 #LSFR looper
 #seed has to be before 255
-def lsfrGen(seed):
+def lfsrGen(seed):
+    lfsrSeq, lfsrSeqBin = "", []
     initalVal = bin(seed)[2:].zfill(8)
+
+    lfsrSeq = initalVal + lfsrSeq
+    lfsrSeqBin.append(initalVal)
+
     currentVal = linearCalc(initalVal)
     while initalVal != currentVal:
+        lfsrSeq = currentVal + lfsrSeq #save 
+        lfsrSeqBin.append(currentVal)
+
         currentVal = linearCalc(currentVal)
+
+    lfsrSeqBin.append(lfsrSeq)
+    print(lfsrSeqBin)
+    return lfsrSeqBin
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Updating the circuit dictionary with the input line, and also resetting the gates and output lines
@@ -542,6 +581,35 @@ def basic_sim(circuit):
 
     return circuit
 
+#takes inputsize of the circuit, And the global variable that hold LFSR sequence
+#returns list for TV_D geneartion
+def TVD_gen(inSize, lfsrSeqBin):
+    TVD_list = []
+    for x in range(0, 255):
+        inputSize = inSize
+        currVal = lfsrSeqBin[x] #curr s0->s1->s2
+        leftoverSize = inputSize % 8
+        inputSize = int((inputSize - leftoverSize)/8)
+        TVD_list.append(currVal[-1*leftoverSize:] + (currVal*inputSize) + "\n")
+    return TVD_list
+
+#takes inputsize of the circuit, And the global variable that hold LFSR sequence
+#returns list for TV_E geneartion
+def TVE_gen(inputSize, lfsrSeq):
+    TVE_list = []
+    start, end = len(lfsrSeq)-inputSize, len(lfsrSeq)
+    for x in range(0, 255):
+        if(start < 0):
+            start = 2040 + start
+        if(end < 0):
+            end = 2040 + end
+        if(start < end):
+            TVE_list.append(lfsrSeq[start:end] + "\n")
+        elif(start > end):
+            TVE_list.append(lfsrSeq[start:] + lfsrSeq[0:end] + "\n")
+        start -= 8
+        end -= 8
+    return TVE_list
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Main Function
@@ -589,41 +657,49 @@ def main():
     print("\n Finished processing benchmark file and built netlist dictionary: \n")
     #printCkt(circuit)
 
+
+
+
+
+    #project 2
     while True:
-        print("What is your seed value in decimal: ")
-        seed = input()
+        seed = input("What is your seed value in integer: ")
         if seed.isdigit():
-            if ((seed < "255") or (seed > "0")): 
+            seed = int(seed)
+            if ((seed < 255) and (seed > 0)): 
                 break
 
-    lsfrGen(int(seed)) #creates lfsr based on the seed
+    while True:
+        batchSize = input("Choose a batch size in [1, 10]: ")
+        if batchSize.isdigit():
+            batchSize = int(batchSize)
+            if ((batchSize < 255) and (batchSize > 0)): 
+                break
+
+    lfsrSeqBin = lfsrGen(seed) #creates lfsr based on the seed
+    inputSize = circuit["INPUT_WIDTH"][1] #hold the number of inputs
 
     #creates the TV_D.txt       
-    TVD = open(os.path.join(script_dir, "TV_D.txt"), "w")
-    for x in range(0, 255):
-        inputSize = circuit["INPUT_WIDTH"][1]
-        currVal = lfsrSeqBin[x] #curr s0->s1->s2
-        leftoverSize = inputSize % 8
-        inputSize = int((inputSize - leftoverSize)/8)
-        TVD.write(currVal[-1*leftoverSize:] + (currVal*inputSize) + "\n")
-    TVD.close()
+    TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
+    for d in TVD_gen(inputSize, lfsrSeqBin):
+        TVD_Output.write(d)
+    TVD_Output.close()
 
     #creates the TV_E.txt
-    TVE = open(os.path.join(script_dir, "TV_E.txt"), "w")
-    inputSize = circuit["INPUT_WIDTH"][1]
-    start, end = len(lfsrSeq)-inputSize, len(lfsrSeq)
-    for x in range(0, 255):
-        if(start < 0):
-            start = 2040 + start
-        if(end < 0):
-            end = 2040 + end
-        if(start < end):
-            TVE.write(lfsrSeq[start:end] + "\n")
-        elif(start > end):
-            TVE.write(lfsrSeq[start:] + lfsrSeq[0:end] + "\n")
-        start -= 8
-        end -= 8
-    TVE.close() 
+    TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
+    for e in TVE_gen(inputSize, lfsrSeqBin[255]):
+        TVE_Output.write(e)
+    TVE_Output.close() 
+
+
+    #Make header for the csv file
+    csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
+    csvFile.write("Batch #, A, B, C, D, E, seed = " + repr(seed) + ", Batch size = " + repr(batchSize))
+    #start_time = time.time()
+    #print("--- %s seconds ---" % (time.time() - start_time))
+
+
+
 
     if not cktOnly:
         allFaults = genFaultList(circuit)
@@ -669,6 +745,9 @@ def main():
     print("\n *** Simulating the" + inputName + " file and will output in" + outputName + "*** \n")
     inputFile = open(inputName, "r")
     outputFile = open(outputName, "w")
+
+
+
     if not cktOnly:
         faultFile = open("fault_sim_result.txt","w")
 
@@ -691,30 +770,19 @@ def main():
             faultFile.write(line)
         # Removing spaces
         line = line.replace(" ", "")
-        
-        print("\n before processing circuit dictionary...")
-        #printCkt(circuit)
+
         print("\n ---> Now ready to simulate INPUT = " + line)
         circuit = inputRead(circuit, line)
 
-        if circuit == -1:
+        if circuit == -1 or circuit == -2:
             print("INPUT ERROR: INSUFFICIENT BITS")
-            outputFile.write(" -> INPUT ERROR: INSUFFICIENT BITS" + "\n")
-            # After each input line is finished, reset the netList
-            circuit = newCircuit
-            print("...move on to next input\n")
-            continue
-        elif circuit == -2:
             print("INPUT ERROR: INVALID INPUT VALUE/S")
-            outputFile.write(" -> INPUT ERROR: INVALID INPUT VALUE/S" + "\n")
             # After each input line is finished, reset the netList
             circuit = newCircuit
-            print("...move on to next input\n")
             continue
 
         #printCkt(circuit)
         inputCircuit = copy.deepcopy(circuit)
-
         circuit = basic_sim(circuit)
         print("\n *** Finished simulation - resulting circuit: \n")
         #printCkt(circuit)
@@ -747,15 +815,16 @@ def main():
         print("\n*******************\n")
     
     if not cktOnly:
-        i = 0
+        i = 0.0
         for x in activeFaults:
             if x[1]:
                 i += 1    
         print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
         faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
     
-        faultFile.close
-    outputFile.close
+        faultFile.close()
+    outputFile.close()
+    csvFile.close()
     #exit()
 
 
