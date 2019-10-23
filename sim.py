@@ -5,6 +5,7 @@ import math
 import threading
 import time
 
+
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
 # 2. gateCalc: function that will work on the logic of each gate
@@ -178,16 +179,16 @@ def netRead(netName):
     netFile = open(netName, "r")
 
     # temporary variables
-    inputs = []     # array of the input wires
-    outputs = []    # array of the output wires
-    gates = []      # array of the gate list
-    inputBits = 0   # the number of inputs needed in this given circuit
+    inputs = []  # array of the input wires
+    outputs = []  # array of the output wires
+    gates = []  # array of the gate list
+    inputBits = 0  # the number of inputs needed in this given circuit
 
     # main variable to hold the circuit netlist, this is a dictionary in Python, where:
     # key = wire name; value = a list of attributes of the wire
     circuit = {}
 
-    #Fast processing SAM
+    # Fast processing SAM
     completed_queue = []
     leftovers_queue = []
 
@@ -263,7 +264,7 @@ def netRead(netName):
             print(msg + "\n")
             return msg
 
-        lineSpliced = lineSpliced[1].split("(") # splicing the line again at the "("  to get the gate logic
+        lineSpliced = lineSpliced[1].split("(")  # splicing the line again at the "("  to get the gate logic
         logic = lineSpliced[0].upper()
 
         lineSpliced[1] = lineSpliced[1].replace(")", "")
@@ -271,10 +272,10 @@ def netRead(netName):
         # Turning each term into an integer before putting it into the circuit dictionary
         terms = ["wire_" + x for x in terms]
 
-            # add the gate output wire to the circuit dictionary with the dest as the key
+        # add the gate output wire to the circuit dictionary with the dest as the key
         circuit[gateOut] = [logic, terms, False, 'U']
 
-        #following check if all terms have been discovered
+        # following check if all terms have been discovered
         temp_to_check_terms_available = len(terms)
         for t in terms:
             if t in completed_queue:
@@ -287,7 +288,7 @@ def netRead(netName):
         else:
             leftovers_queue.append(gateOut)
 
-    #Finish up the ordering SAM
+    # Finish up the ordering SAM
     while len(leftovers_queue):
         currgate = leftovers_queue[0]
         terms = circuit[currgate][1]
@@ -320,6 +321,7 @@ def netRead(netName):
 
     return circuit
 
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: calculates the output value for each logic gate
 def gateCalc(circuit, node):
@@ -328,11 +330,11 @@ def gateCalc(circuit, node):
     # terminal will contain all the input wires of this logic gate (node)
     for gate in list(circuit[node][1]):
         nodeLen += 1
-        if gate in ['0','1','U']:
-            gate = int(gate*8, 2) # Turning the gate into an int and appending it to the terminals
+        if gate in ['0', '1', 'U']:
+            gate = int(gate * 8, 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
-            gate = int(circuit[gate][3],2)
+            gate = int(circuit[gate][3], 2)
             terminals.append(gate)
     # print(terminals)
     # terminals = list(circuit[node][1])
@@ -343,49 +345,48 @@ def gateCalc(circuit, node):
 
     # If the node is an AND gate output, solve and return the output
     elif circuit[node][0] == "AND":
-        output = int("1"*nodeLen,2)
-        for term in terminals:  
+        output = int("1" * nodeLen, 2)
+        for term in terminals:
             output = output & term
         circuit[node][3] = "{0:08b}".format(output)
         return circuit
 
     # If the node is a NAND gate output, solve and return the output
     elif circuit[node][0] == "NAND":
-        output = int("1"*nodeLen,2)
-        for term in terminals:  
+        output = int("1" * nodeLen, 2)
+        for term in terminals:
             output = output & term
         circuit[node][3] = "{0:08b}".format(~output)
         return circuit
-        
+
     # If the node is an OR gate output, solve and return the output
     elif circuit[node][0] == "OR":
-        output = int("0"*nodeLen,2)
-        for term in terminals:  
+        output = int("0" * nodeLen, 2)
+        for term in terminals:
             output = output | term
         circuit[node][3] = "{0:08b}".format(output)
         return circuit
 
     # If the node is an NOR gate output, solve and return the output
     if circuit[node][0] == "NOR":
-        output = int("0"*nodeLen,2)
-        for term in terminals:  
+        output = int("0" * nodeLen, 2)
+        for term in terminals:
             output = output | term
         circuit[node][3] = "{0:08b}".format(~output)
         return circuit
-        
 
     # If the node is an XOR gate output, solve and return the output
     if circuit[node][0] == "XOR":
-        output = int("0"*nodeLen,2)
-        for term in terminals:  
+        output = int("0" * nodeLen, 2)
+        for term in terminals:
             output = output ^ term
         circuit[node][3] = "{0:08b}".format(output)
         return circuit
 
     # If the node is an XNOR gate output, solve and return the output
     elif circuit[node][0] == "XNOR":
-        output = int("0"*nodeLen,2)
-        for term in terminals:  
+        output = int("0" * nodeLen, 2)
+        for term in terminals:
             output = output ^ term
         circuit[node][3] = "{0:08b}".format(~output)
         return circuit
@@ -403,6 +404,7 @@ def linearCalc(initalVal):
     sBinary = sBinary[0:3] + repr(xorVals).zfill(3) + sBinary[6:7] + temp  # final value
     return sBinary
 
+
 # Basic counter for TV A ~ C
 def counterGen(seed):
     counterBin = []
@@ -410,8 +412,9 @@ def counterGen(seed):
     for x in range(0, 255):
         counterBin.append(initialVal)
         initialVal += 1
-    #print(counterBin)
+    # print(counterBin)
     return counterBin
+
 
 # LFSR looper
 # seed has to be before 255
@@ -429,7 +432,7 @@ def lfsrGen(seed):
         currentVal = linearCalc(currentVal)
 
     lfsrSeqBin.append(lfsrSeq)
-    #print(lfsrSeqBin)
+    # print(lfsrSeqBin)
     return lfsrSeqBin
 
 
@@ -441,7 +444,7 @@ def inputRead(circuit, inputLines):
         # Checking if input bits are enough for the circuit
         if len(line) < circuit["INPUT_WIDTH"][1]:
             return -1
-        
+
         # Getting the proper number of bits:
         line = line[(len(line) - circuit["INPUT_WIDTH"][1]):(len(line))]
 
@@ -451,14 +454,14 @@ def inputRead(circuit, inputLines):
         inputs = list(circuit["INPUTS"][1])
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
         for bitVal in line:
-            bitVal = bitVal.upper() # in the case user input lower-case u
-            circuit[inputs[i]][3].append(bitVal) # put the bit value as the line value
+            bitVal = bitVal.upper()  # in the case user input lower-case u
+            circuit[inputs[i]][3].append(bitVal)  # put the bit value as the line value
             circuit[inputs[i]][2] = True  # and make it so that this line is accessed
 
             # In case the input has an invalid character (i.e. not "0", "1" or "U"), return an error flag
             if bitVal != "0" and bitVal != "1":
                 return -2
-            i -= 1 # continuing the increments
+            i -= 1  # continuing the increments
 
     return circuit
 
@@ -520,31 +523,36 @@ def basic_sim(circuit):
 
     return circuit
 
+
 # one N-Bit counter [0,0,0,0,80] in binary fills bits 0 ~ 24 with 0s
 # returns list for TV_A generation
-def TVA_gen(counterBin):
+def TVA_gen(counterBin, inputSize):
     TVA_list = []
     for x in range(0, 255):
         currVal = counterBin[x]
-        binVal = bin(currVal)[2:].zfill(36)
+        binVal = bin(currVal)[2:].zfill(inputSize)
         TVA_list.append(binVal + "\n")
     return TVA_list
 
-#multi 8-bit counter [80,80,80,80,80] in binary
+
+# multi 8-bit counter [80,80,80,80,80] in binary
 # returns list for TV_B generation
-def TVB_gen(counterBin):
+def TVB_gen(counterBin, inputSize):
     TVB_list = []
     for x in range(0, 255):
         currVal = counterBin[x]
         binVal = bin(currVal)[2:].zfill(8)
-        finalVal = str(binVal)*5
-        finalVal = finalVal[4:40]
+        finalVal = str(binVal) * 5
+        vecSize = len(finalVal)
+        outSize = abs(vecSize - inputSize)
+        finalVal = finalVal[outSize:vecSize]
         TVB_list.append(finalVal + "\n")
     return TVB_list
 
+
 # +1 counter multi 8-bit "diff seed" [84,83,82,81,80], [85,84,83,82,81], etc in binary
 # returns list for TV_C generation
-def TVC_gen(counterBin):
+def TVC_gen(counterBin, inputSize):
     TVC_list = []
     for x in range(0, 255):
         tempBin = ""
@@ -552,10 +560,13 @@ def TVC_gen(counterBin):
         for y in range(0, 5):
             tempVal = str(bin(currVal)[2:].zfill(8))
             tempBin = tempVal + tempBin
-            #print(tempBin)
+            # print(tempBin)
             currVal += 1
-        TVC_list.append(tempBin[4:40] + "\n")
+        vecSize = len(tempBin)
+        outSize = abs(vecSize - inputSize)
+        TVC_list.append(tempBin[outSize:vecSize] + "\n")
     return TVC_list
+
 
 # takes inputsize of the circuit, And the global variable that hold LFSR sequence
 # returns list for TV_D geneartion
@@ -563,52 +574,53 @@ def TVD_gen(inSize, lfsrSeqBin):
     TVD_list = []
     for x in range(0, 255):
         inputSize = inSize
-        currVal = lfsrSeqBin[x] #curr s0->s1->s2
+        currVal = lfsrSeqBin[x]  # curr s0->s1->s2
         leftoverSize = inputSize % 8
-        inputSize = int((inputSize - leftoverSize)/8)
-        TVD_list.append(currVal[-1*leftoverSize:] + (currVal*inputSize) + "\n")
+        inputSize = int((inputSize - leftoverSize) / 8)
+        TVD_list.append(currVal[-1 * leftoverSize:] + (currVal * inputSize) + "\n")
     return TVD_list
 
-#takes inputsize of the circuit, And the global variable that hold LFSR sequence
-#returns list for TV_E geneartion
+
+# takes inputsize of the circuit, And the global variable that hold LFSR sequence
+# returns list for TV_E geneartion
 def TVE_gen(inputSize, lfsrSeq):
     TVE_list = []
-    start, end = len(lfsrSeq)-inputSize, len(lfsrSeq)
+    start, end = len(lfsrSeq) - inputSize, len(lfsrSeq)
     for x in range(0, 255):
-        if(start < 0):
+        if (start < 0):
             start = 2040 + start
-        if(end < 0):
+        if (end < 0):
             end = 2040 + end
-        if(start < end):
+        if (start < end):
             TVE_list.append(lfsrSeq[start:end] + "\n")
-        elif(start > end):
+        elif (start > end):
             TVE_list.append(lfsrSeq[start:] + lfsrSeq[0:end] + "\n")
         start -= 8
         end -= 8
     return TVE_list
 
-#used to read in user's TV and put into a big array
+
+# used to read in user's TV and put into a big array
 def importTVs(TV_Stream, batchSize):
     anArray = []
     tempArray = []
     total = 25 * batchSize
     for i, line in enumerate(TV_Stream):
         line = line.replace("\n", "")
-        if ((i+1) % batchSize) == 0:
+        if ((i + 1) % batchSize) == 0:
             tempArray.append(line)
             anArray.append(tempArray)
             tempArray = []
         else:
             tempArray.append(line)
-        if (i+1) == total:
+        if (i + 1) == total:
             TV_Stream.close()
             return anArray
-    
-    #should not reach this point
+
+    # should not reach this point
     TV_Stream.close()
     print("Not Enough TV's")
     return 0
-    
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -673,41 +685,39 @@ def main():
             if ((batchSize < 255) and (batchSize > 0)):
                 break
 
-            
-    #Create TV files here
-
+    # Create TV files here
     counterBin = counterGen(seed)
     lfsrSeqBin = lfsrGen(seed)  # creates lfsr based on the seed
     inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
 
     TVA_Output = open("TV_A.txt", "w")
-    for a in TVA_gen(counterBin):
-        #TVA_Output.write(a)
-        TVA_Output.write(hex(int(a,2)) + "\n")
+    for a in TVA_gen(counterBin, inputSize):
+        # TVA_Output.write(a)
+        TVA_Output.write(hex(int(a, 2)) + "\n")
     TVA_Output.close()
 
     TVB_Output = open(os.path.join(script_dir, "TV_B.txt"), "w")
-    for b in TVB_gen(counterBin):
-        #TVB_Output.write(b)
-        TVB_Output.write(hex(int(b,2)) + "\n")
+    for b in TVB_gen(counterBin, inputSize):
+        # TVB_Output.write(b)
+        TVB_Output.write(hex(int(b, 2)) + "\n")
     TVB_Output.close()
 
     TVC_Output = open(os.path.join(script_dir, "TV_C.txt"), "w")
-    for c in TVC_gen(counterBin):
-        #TVC_Output.write(c)
-        TVC_Output.write(hex(int(c,2)) + "\n")
+    for c in TVC_gen(counterBin, inputSize):
+        # TVC_Output.write(c)
+        TVC_Output.write(hex(int(c, 2)) + "\n")
     TVC_Output.close()
 
     TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
     for d in TVD_gen(inputSize, lfsrSeqBin):
-        #TVD_Output.write(d)
-        TVD_Output.write(hex(int(d,2)) + "\n")
+        # TVD_Output.write(d)
+        TVD_Output.write(hex(int(d, 2)) + "\n")
     TVD_Output.close()
 
     TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
     for e in TVE_gen(inputSize, lfsrSeqBin[255]):
-        #TVE_Output.write(e)
-        TVE_Output.write(hex(int(e,2)) + "\n")
+        # TVE_Output.write(e)
+        TVE_Output.write(hex(int(e, 2)) + "\n")
     TVE_Output.close()
 
     # Make header for the csv file
@@ -716,8 +726,7 @@ def main():
     # start_time = time.time()
     # print("--- %s seconds ---" % (time.time() - start_time))
 
-
-    #THIS WILL BE USED FOR CIRCUIT SIMULATION
+    # THIS WILL BE USED FOR CIRCUIT SIMULATION
     user_TV_array = []
     user_TV_array.append(importTVs(open("TV_A.txt", "r"), batchSize))
     user_TV_array.append(importTVs(open("TV_B.txt", "r"), batchSize))
@@ -769,8 +778,6 @@ def main():
     print("\n *** Simulating the" + inputName + " file and will output in" + outputName + "*** \n")
     inputFile = open(inputName, "r")
     outputFile = open(outputName, "w")
-
-
 
     if not cktOnly:
         faultFile = open("fault_sim_result.txt", "w")
@@ -841,14 +848,16 @@ def main():
         i = 0.0
         for x in activeFaults:
             if x[1]:
-                i += 1    
-        print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
-        faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) +"="+str(round(100.0*float(i)/float(len(activeFaults)),2))+"%")
-    
+                i += 1
+        print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
+            round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
+        faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
+            round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
+
         faultFile.close()
     outputFile.close()
     csvFile.close()
-    #exit()
+    # exit()
 
 
 if __name__ == "__main__":
