@@ -419,7 +419,7 @@ def lfsrGen(seed):
         currentVal = linearCalc(currentVal)
 
     lfsrSeqBin.append(lfsrSeq)
-    print(lfsrSeqBin)
+    #print(lfsrSeqBin)
     return lfsrSeqBin
 
 # LFSR acutal
@@ -439,8 +439,9 @@ def counterGen(seed):
         counterBin.append(initialVal)
         initialVal += 1
 
-    print(counterBin)
+    #print(counterBin)
     return counterBin
+
 # LFSR looper
 # seed has to be before 255
 def lfsrGen(seed):
@@ -457,7 +458,6 @@ def lfsrGen(seed):
         currentVal = linearCalc(currentVal)
 
     lfsrSeqBin.append(lfsrSeq)
-    print(lfsrSeqBin)
     return lfsrSeqBin
 
 
@@ -580,7 +580,7 @@ def TVC_gen(counterBin):
         for y in range(0, 5):
             tempVal = str(bin(currVal)[2:].zfill(8))
             tempBin = tempVal + tempBin
-            print(tempBin)
+            #print(tempBin)
             currVal += 1
         TVC_list.append(tempBin[4:40] + "\n")
     return TVC_list
@@ -666,7 +666,7 @@ def main():
         seed = input("What is your seed value in integer: ")
         if seed.isdigit():
             seed = int(seed)
-            if ((seed < 255) and (seed > 0)):
+            if ((seed <= 255) and (seed > 0)):
                 break
 
     while True:
@@ -683,29 +683,34 @@ def main():
     # creates the TV_A.txt
     TVA_Output = open(os.path.join(script_dir, "TV_A.txt"), "w")
     for a in TVA_gen(counterBin):
-        TVA_Output.write(a)
+        #TVA_Output.write(a)
+        TVA_Output.write(hex(int(a,2)) + "\n")
     TVA_Output.close()
 
     TVB_Output = open(os.path.join(script_dir, "TV_B.txt"), "w")
     for b in TVB_gen(counterBin):
-        TVB_Output.write(b)
+        #TVB_Output.write(b)
+        TVB_Output.write(hex(int(b,2)) + "\n")
     TVB_Output.close()
 
     TVC_Output = open(os.path.join(script_dir, "TV_C.txt"), "w")
     for c in TVC_gen(counterBin):
-        TVC_Output.write(c)
+        #TVC_Output.write(c)
+        TVC_Output.write(hex(int(c,2)) + "\n")
     TVC_Output.close()
 
     # creates the TV_D.txt
     TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
     for d in TVD_gen(inputSize, lfsrSeqBin):
-        TVD_Output.write(d)
+        #TVD_Output.write(d)
+        TVD_Output.write(hex(int(d,2)) + "\n")
     TVD_Output.close()
 
     # creates the TV_E.txt
     TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
     for e in TVE_gen(inputSize, lfsrSeqBin[255]):
-        TVE_Output.write(e)
+        #TVE_Output.write(e)
+        TVE_Output.write(hex(int(e,2)) + "\n")
     TVE_Output.close()
 
     # Make header for the csv file
@@ -713,49 +718,6 @@ def main():
     csvFile.write("Batch #, A, B, C, D, E, seed = " + repr(seed) + ", Batch size = " + repr(batchSize))
     # start_time = time.time()
     # print("--- %s seconds ---" % (time.time() - start_time))
-
-
-
-
-
-    #project 2
-    while True:
-        seed = input("What is your seed value in integer: ")
-        if seed.isdigit():
-            seed = int(seed)
-            if ((seed < 255) and (seed > 0)): 
-                break
-
-    while True:
-        batchSize = input("Choose a batch size in [1, 10]: ")
-        if batchSize.isdigit():
-            batchSize = int(batchSize)
-            if ((batchSize < 255) and (batchSize > 0)): 
-                break
-
-    lfsrSeqBin = lfsrGen(seed) #creates lfsr based on the seed
-    inputSize = circuit["INPUT_WIDTH"][1] #hold the number of inputs
-
-    #creates the TV_D.txt       
-    TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
-    for d in TVD_gen(inputSize, lfsrSeqBin):
-        TVD_Output.write(d)
-    TVD_Output.close()
-
-    #creates the TV_E.txt
-    TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
-    for e in TVE_gen(inputSize, lfsrSeqBin[255]):
-        TVE_Output.write(e)
-    TVE_Output.close() 
-
-
-    #Make header for the csv file
-    csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
-    csvFile.write("Batch #, A, B, C, D, E, seed = " + repr(seed) + ", Batch size = " + repr(batchSize))
-    #start_time = time.time()
-    #print("--- %s seconds ---" % (time.time() - start_time))
-
-
 
 
     if not cktOnly:
