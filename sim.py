@@ -393,34 +393,6 @@ def gateCalc(circuit, node):
     # Error detection... should not be able to get at this point
     return circuit[node][0]
 
-#LFSR acutal
-def linearCalc(initalVal):
-    temp = initalVal[0] #Get the MSB
-    sBinary = initalVal[-7:]
-
-    xorVals = int(sBinary[3:6]) ^ int(temp+temp+temp)
-    sBinary = sBinary[0:3] + repr(xorVals).zfill(3) + sBinary[6:7] + temp #final value
-    return sBinary
- 
-#LSFR looper
-#seed has to be before 255
-def lfsrGen(seed):
-    lfsrSeq, lfsrSeqBin = "", []
-    initalVal = bin(seed)[2:].zfill(8)
-
-    lfsrSeq = initalVal + lfsrSeq
-    lfsrSeqBin.append(initalVal)
-
-    currentVal = linearCalc(initalVal)
-    while initalVal != currentVal:
-        lfsrSeq = currentVal + lfsrSeq #save 
-        lfsrSeqBin.append(currentVal)
-
-        currentVal = linearCalc(currentVal)
-
-    lfsrSeqBin.append(lfsrSeq)
-    #print(lfsrSeqBin)
-    return lfsrSeqBin
 
 # LFSR acutal
 def linearCalc(initalVal):
@@ -438,7 +410,6 @@ def counterGen(seed):
     for x in range(0, 255):
         counterBin.append(initialVal)
         initialVal += 1
-
     #print(counterBin)
     return counterBin
 
@@ -458,6 +429,7 @@ def lfsrGen(seed):
         currentVal = linearCalc(currentVal)
 
     lfsrSeqBin.append(lfsrSeq)
+    #print(lfsrSeqBin)
     return lfsrSeqBin
 
 
@@ -615,6 +587,30 @@ def TVE_gen(inputSize, lfsrSeq):
         end -= 8
     return TVE_list
 
+#used to read in user's TV and put into a big array
+def importTVs(TV_Stream, batchSize):
+    anArray = []
+    tempArray = []
+    total = 25 * batchSize
+    for i, line in enumerate(TV_Stream):
+        line = line.replace("\n", "")
+        if ((i+1) % batchSize) == 0:
+            tempArray.append(line)
+            anArray.append(tempArray)
+            tempArray = []
+        else:
+            tempArray.append(line)
+        if (i+1) == total:
+            TV_Stream.close()
+            return anArray
+    
+    #should not reach this point
+    TV_Stream.close()
+    print("Not Enough TV's")
+    return 0
+    
+
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Main Function
 def main():
@@ -648,6 +644,7 @@ def main():
         print("\n Read circuit benchmark file: use " + cktFile + "?" + " Enter to accept or type filename: ")
         userInput = input()
         if userInput == "":
+            cktFile = os.path.join(script_dir, cktFile)
             break
         else:
             cktFile = os.path.join(script_dir, userInput)
@@ -676,12 +673,14 @@ def main():
             if ((batchSize < 255) and (batchSize > 0)):
                 break
 
+            
+    #Create TV files here
+
     counterBin = counterGen(seed)
     lfsrSeqBin = lfsrGen(seed)  # creates lfsr based on the seed
     inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
 
-    # creates the TV_A.txt
-    TVA_Output = open(os.path.join(script_dir, "TV_A.txt"), "w")
+    TVA_Output = open("TV_A.txt", "w")
     for a in TVA_gen(counterBin):
         #TVA_Output.write(a)
         TVA_Output.write(hex(int(a,2)) + "\n")
@@ -699,14 +698,12 @@ def main():
         TVC_Output.write(hex(int(c,2)) + "\n")
     TVC_Output.close()
 
-    # creates the TV_D.txt
     TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
     for d in TVD_gen(inputSize, lfsrSeqBin):
         #TVD_Output.write(d)
         TVD_Output.write(hex(int(d,2)) + "\n")
     TVD_Output.close()
 
-    # creates the TV_E.txt
     TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
     for e in TVE_gen(inputSize, lfsrSeqBin[255]):
         #TVE_Output.write(e)
@@ -719,6 +716,14 @@ def main():
     # start_time = time.time()
     # print("--- %s seconds ---" % (time.time() - start_time))
 
+
+    #THIS WILL BE USED FOR CIRCUIT SIMULATION
+    user_TV_array = []
+    user_TV_array.append(importTVs(open("TV_A.txt", "r"), batchSize))
+    user_TV_array.append(importTVs(open("TV_B.txt", "r"), batchSize))
+    user_TV_array.append(importTVs(open("TV_C.txt", "r"), batchSize))
+    user_TV_array.append(importTVs(open("TV_D.txt", "r"), batchSize))
+    user_TV_array.append(importTVs(open("TV_E.txt", "r"), batchSize))
 
     if not cktOnly:
         allFaults = genFaultList(circuit)
