@@ -9,7 +9,7 @@ import time
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
 # 2. gateCalc: function that will work on the logic of each gate
-# 3. inputRead: function that will update the circuit dictionary made in netRead to hold the line values
+# 3. [REMOVED] inputRead: function that will update the circuit dictionary made in netRead to hold the line values
 # 4. basic_sim: the actual simulation
 # 5. main: The main function
 # 6. counterGen: takes seed and creates a list s0,s1,s(n+1) till n = 255
@@ -106,9 +106,9 @@ def readFaults(allFaults, faultFile):
 
 # FUNCTION:
 def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, faultFile):
-    toOutput = []
+    detectedFaults = 0
+    undetectedFaults = []
     for x in activeFaults:
-        output = ''
         circuit = copy.deepcopy(inputCircuit)
 
         xSplit = x[0].split("-SA-")
@@ -133,24 +133,18 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, faultFile):
 
         # print("AFTER:")
         # printCkt(circuit)
+        increment = 0
         for y in circuit["OUTPUTS"][1]:
             if not circuit[y][2]:
-                output = "NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED"
+                print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                 break
-            output = str(circuit[y][3]) + output
-        if output != goodOutput:
-            x[1] = True
-            toOutput.append(x[0] + " -> " + output)
-    if len(toOutput) != 0:
-        faultFile.write("detected:\n")
-        print("detected:")
-        for line in toOutput:
-            print(line)
-            faultFile.write('\t' + line + '\n')
-        print("\n*******************\n")
-        faultFile.write('\n')
-    return activeFaults
-
+            XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
+            if XORed > 0:
+                detectedFault += 1
+            else:
+                undetectedFaults.append(x)
+                
+    return [undetectedFaults, detectedFaults]
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Neatly prints the Circuit Dictionary:
@@ -326,12 +320,11 @@ def netRead(netName):
 # FUNCTION: calculates the output value for each logic gate
 def gateCalc(circuit, node):
     terminals = []
-    nodeLen = 0
+    nodeLen = 8
     # terminal will contain all the input wires of this logic gate (node)
     for gate in list(circuit[node][1]):
-        nodeLen += 1
         if gate in ['0', '1', 'U']:
-            gate = int(gate * 8, 2)  # Turning the gate into an int and appending it to the terminals
+            gate = int(gate * nodeLen, 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
             gate = int(circuit[gate][3], 2)
@@ -342,6 +335,12 @@ def gateCalc(circuit, node):
     if circuit[node][0] == "NOT":
         circuit[node][3] = "{0:08b}".format(~terminals[0])
         return circuit
+
+    # If the node is a buffer gate output, solve and return the output
+    elif circuit[node][0] == "BUFF":
+        circuit[node][3] = "{0:08b}".format(terminals[0])
+        return circuit
+
 
     # If the node is an AND gate output, solve and return the output
     elif circuit[node][0] == "AND":
@@ -437,10 +436,20 @@ def lfsrGen(seed):
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
-# FUNCTION: Updating the circuit dictionary with the input line, and also resetting the gates and output lines
+# FUNCTION: Updating the circuit dictionary with the TV batches, and also resetting the gates and output lines
+# NEEDED:
+#   • circuit == circuit dictionary
+#   • TVbatch == Current batch number of TV_user_array
+#   • fault_list == the active fault_list
+def TVSim(circuit, TVbatch, fault_list):
+    # Counting increment on how many TV's we are passing thru
+    TVcount = 0
+    
+    # For every TV, we update our inputs 
+    for line in TVbatch:
+        # TV count increments up
+        TVcount += 1
 
-def inputRead(circuit, inputLines):
-    for line in inputLines:
         # Checking if input bits are enough for the circuit
         if len(line) < circuit["INPUT_WIDTH"][1]:
             return -1
@@ -456,15 +465,30 @@ def inputRead(circuit, inputLines):
         for bitVal in line:
             bitVal = bitVal.upper()  # in the case user input lower-case u
             circuit[inputs[i]][3].append(bitVal)  # put the bit value as the line value
-            circuit[inputs[i]][2] = True  # and make it so that this line is accessed
+            if not circuit[inputs[i]][2]:
+                circuit[inputs[i]][2] = True  # and make it so that this line is accessed if it hasn't already
 
             # In case the input has an invalid character (i.e. not "0", "1" or "U"), return an error flag
             if bitVal != "0" and bitVal != "1":
                 return -2
             i -= 1  # continuing the increments
+    
+    # Creating a deepcopy to be used to easily reset the circuit with the current TV's
+    circReset = copy.deepcopy(circuit)
 
-    return circuit
+    # Inputs should have len(TVlist)-bits first TV from the left to right
+    basic_sim(circuit)
+    
+    # Get the goodOutput
+    goodOutput = []
+    for y in circuit["OUTPUTS"][1]:
+        if not circuit[y][2]:
+            print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
+            break
+        goodOutput.append(str(circuit[y][3]))
 
+    # Get the fault sim. which should output the percentage
+    return fault_sim(circuit, fault_list, circReset, goodOutput)
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: the actual simulation #
@@ -504,7 +528,7 @@ def basic_sim(circuit):
 
             # ERROR Detection if LOGIC does not exist
             if isinstance(circuit, str):
-                print(circuit)
+                print("LOGIC DNE: " + circuit)
                 return circuit
 
             # print("Progress: updating " + curr + " = " + circuit[curr][3] + " as the output of " + circuit[curr][0] + " for:")
