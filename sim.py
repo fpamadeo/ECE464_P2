@@ -143,7 +143,7 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
                 detectedFaults += 1
             else:
                 undetectedFaults.append(x)
-    #print("...done\n\n")             
+    print("...done\n\n")             
     return [undetectedFaults, detectedFaults]
     
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -447,7 +447,7 @@ def TVSim(circuit, TVbatch, fault_list):
     # Counting increment on how many Input sets we are passing thru
     TVcount = 0
     
-    #print("UPDATING Inputs")
+    print("UPDATING Inputs")
 
     # For every TV, we update our inputs 
     for line in TVbatch:
@@ -483,16 +483,16 @@ def TVSim(circuit, TVbatch, fault_list):
                 return -2
             i -= 1  # continuing the increments
     
-    #print("Finished updating " + str(TVcount) + " inputs\n\n")
+    print("Finished updating " + str(TVcount) + " inputs\n\n")
 
-    #print("Creating Reset Copy...")
+    print("Creating Reset Copy...")
     # Creating a deepcopy to be used to easily reset the circuit with the current TV's
     circReset = copy.deepcopy(circuit)
-    #print("...Done\n\n Simulating Good circuit now...")
+    print("...Done\n\n Simulating Good circuit now...")
     # Inputs should have len(TVlist)-bits first TV from the left to right
     basic_sim(circuit, TVcount)
     
-    #print("...Done\n\nCreating goodOutput...")
+    print("...Done\n\nCreating goodOutput...")
     # Get the goodOutput
     goodOutput = []
     for y in circuit["OUTPUTS"][1]:
@@ -500,8 +500,8 @@ def TVSim(circuit, TVbatch, fault_list):
             print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
             break
         goodOutput.append(str(circuit[y][3]))
-    #print("...done\n")
-    #print("Simulating bad circuits:")
+    print("...done\n")
+    print("Simulating bad circuits:")
     # Get the fault sim. which should output the percentage
     return fault_sim(circuit, fault_list, circReset, goodOutput, TVcount)
 
