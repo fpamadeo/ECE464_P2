@@ -323,10 +323,10 @@ def gateCalc(circuit, node, nodeLen):
     # terminal will contain all the input wires of this logic gate (node)
     for gate in list(circuit[node][1]):
         if gate in ['0', '1', 'U']:
-            gate = int(gate * nodeLen, 2)  # Turning the gate into an int and appending it to the terminals
+            gate = int("0" + (gate * nodeLen), 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
-            gate = int(circuit[gate][3], 2)
+            gate = int("0" + circuit[gate][3], 2)
             terminals.append(gate)
     # print(terminals)
     # terminals = list(circuit[node][1])
@@ -343,7 +343,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an AND gate output, solve and return the output
     elif circuit[node][0] == "AND":
-        output = int("1" * nodeLen, 2)
+        output = int("0" + ("1" * nodeLen), 2)
         for term in terminals:
             output = output & term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(output)
@@ -351,7 +351,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is a NAND gate output, solve and return the output
     elif circuit[node][0] == "NAND":
-        output = int("1" * nodeLen, 2)
+        output = int("0" + ("1" * nodeLen), 2)
         for term in terminals:
             output = output & term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
@@ -359,7 +359,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an OR gate output, solve and return the output
     elif circuit[node][0] == "OR":
-        output = int("0" * nodeLen, 2)
+        output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(output)
@@ -367,7 +367,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an NOR gate output, solve and return the output
     if circuit[node][0] == "NOR":
-        output = int("0" * nodeLen, 2)
+        output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
@@ -375,7 +375,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an XOR gate output, solve and return the output
     if circuit[node][0] == "XOR":
-        output = int("0" * nodeLen, 2)
+        output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(output)
@@ -383,7 +383,7 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an XNOR gate output, solve and return the output
     elif circuit[node][0] == "XNOR":
-        output = int("0" * nodeLen, 2)
+        output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
@@ -444,8 +444,12 @@ def TVSim(circuit, TVbatch, fault_list):
     # Counting increment on how many Input sets we are passing thru
     TVcount = 0
     
+    print("UPDATING Inputs")
+
     # For every TV, we update our inputs 
     for line in TVbatch:
+
+
         # TV count increments up
         TVcount += 1
 
@@ -477,6 +481,8 @@ def TVSim(circuit, TVbatch, fault_list):
                 return -2
             i -= 1  # continuing the increments
     
+    print("Finished updating " + str(TVcount) + " inputs")
+
     # Creating a deepcopy to be used to easily reset the circuit with the current TV's
     circReset = copy.deepcopy(circuit)
 
