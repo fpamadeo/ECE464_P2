@@ -229,7 +229,7 @@ def netRead(netName):
             inputs.append(line)
 
             # add this wire as an entry to the circuit dictionary
-            circuit[line] = ["INPUT", line, False, 'U']
+            circuit[line] = ["INPUT", line, False, '']
 
             inputBits += 1
             print(line)
@@ -267,7 +267,7 @@ def netRead(netName):
         terms = ["wire_" + x for x in terms]
 
         # add the gate output wire to the circuit dictionary with the dest as the key
-        circuit[gateOut] = [logic, terms, False, 'U']
+        circuit[gateOut] = [logic, terms, False, '']
 
         # following check if all terms have been discovered
         temp_to_check_terms_available = len(terms)
@@ -446,7 +446,7 @@ def lfsrGen(seed):
 def TVSim(circuit, TVbatch, fault_list):
     # Counting increment on how many Input sets we are passing thru
     TVcount = 0
-    
+
     print("UPDATING Inputs")
 
     # For every TV, we update our inputs 
@@ -467,16 +467,18 @@ def TVSim(circuit, TVbatch, fault_list):
         i = circuit["INPUT_WIDTH"][1] - 1
         inputs = list(circuit["INPUTS"][1])
         
+        ###Commented out: Theta(n)=> exponential because of for loop?
+        ###implemented in netRead instead
         ##Support for the WAS below
-        for inp in inputs:
-            circuit[inp][3] = ""
+        #for inp in inputs:
+        #    circuit[inp][3] = ""
         
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
+        # line: string
         for bitVal in line:
-            bitVal = bitVal.upper()  # in the case user input lower-case u
+            # bitVal = bitVal.upper()  # in the case user input lower-case u
             circuit[inputs[i]][3] += bitVal  # put the bit value as the line value ##WAS circuit[inputs[i]][3].append(bitVal)
-            if not circuit[inputs[i]][2]:
-                circuit[inputs[i]][2] = True  # and make it so that this line is accessed if it hasn't already
+            circuit[inputs[i]][2] = True  # and make it so that this line is accessed if it hasn't already
 
             # In case the input has an invalid character (i.e. not "0", "1" or "U"), return an error flag
             if bitVal != "0" and bitVal != "1":
@@ -488,6 +490,7 @@ def TVSim(circuit, TVbatch, fault_list):
     print("Creating Reset Copy...")
     # Creating a deepcopy to be used to easily reset the circuit with the current TV's
     circReset = copy.deepcopy(circuit)
+
     print("...Done\n\n Simulating Good circuit now...")
     # Inputs should have len(TVlist)-bits first TV from the left to right
     basic_sim(circuit, TVcount)
@@ -501,7 +504,7 @@ def TVSim(circuit, TVbatch, fault_list):
             break
         goodOutput.append(str(circuit[y][3]))
     print("...done\n")
-    print("Simulating bad circuits:")
+    print("Simulating bad circuits...")
     # Get the fault sim. which should output the percentage
     return fault_sim(circuit, fault_list, circReset, goodOutput, TVcount)
 
@@ -824,6 +827,7 @@ def main():
     faults_for_C = genFaultList(circuit)
     faults_for_D = genFaultList(circuit)
     faults_for_E = genFaultList(circuit)
+
     #0 will hold the total value
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
     
@@ -831,10 +835,20 @@ def main():
 
     for batch in range(0, 25):        
         tempA, tempB, tempC, tempD, tempE = 0,0,0,0,0
-        faults_for_A, tempA = TVSim(circuit, user_TV_array[0][batch], faults_for_A)        
+        circuit = copy.deepcopy(newCircuit)
+        print("BATCH:A"+str(batch))
+        faults_for_A, tempA = TVSim(circuit, user_TV_array[0][batch], faults_for_A)
+        circuit = copy.deepcopy(newCircuit)    
+        print("BATCH:B"+str(batch))
         faults_for_B, tempB = TVSim(circuit, user_TV_array[1][batch], faults_for_B)
+        circuit = copy.deepcopy(newCircuit)
+        print("BATCH:C"+str(batch))
         faults_for_C, tempC = TVSim(circuit, user_TV_array[2][batch], faults_for_C)
+        circuit = copy.deepcopy(newCircuit)
+        print("BATCH:D"+str(batch))
         faults_for_D, tempD = TVSim(circuit, user_TV_array[3][batch], faults_for_D)
+        circuit = copy.deepcopy(newCircuit)
+        print("BATCH:E"+str(batch))
         faults_for_E, tempE = TVSim(circuit, user_TV_array[4][batch], faults_for_E)
 
         if(batch != 0):
