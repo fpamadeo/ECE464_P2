@@ -322,7 +322,7 @@ def gateCalc(circuit, node, nodeLen):
     terminals = []
     # terminal will contain all the input wires of this logic gate (node)
     for gate in list(circuit[node][1]):
-        printCkt(circuit)
+        # printCkt(circuit)
         if gate in ['0', '1', 'U']:
             gate = int(("0" + (gate * nodeLen)), 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
@@ -334,7 +334,7 @@ def gateCalc(circuit, node, nodeLen):
     # terminals = list(circuit[node][1])
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(-1 * ~terminals[0])
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((-1 * ~terminals[0]))
         return circuit
 
     # If the node is a buffer gate output, solve and return the output
