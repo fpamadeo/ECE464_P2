@@ -118,11 +118,8 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
 
         # Get the value to which the node is stuck at
         value = xSplit[1]
-        # if value != "0": #SAM Gotta make sure you have enough bits
-        #     value = bin(2 ** nodeLen - 1)[2:]
-        # else:
-        #     value = value.zfill(nodeLen)
         currentFault = "wire_" + xSplit[0]
+        value = "0" + (value * nodeLen)
 
         if "-IN-" not in currentFault:
             circuit[currentFault][3] = value
@@ -333,8 +330,8 @@ def gateCalc(circuit, node, nodeLen):
     for gate in list(circuit[node][1]):
         # printCkt(circuit)
         # print("GATE:"+gate)
-        if gate in ['0', '1', 'U']:
-            gate = int(gate)  # Turning the gate into an int and appending it to the terminals
+        if gate in ["0"+'0'*nodeLen, "0"+'1'*nodeLen, "0"+'U'*nodeLen]:
+            gate = int(gate,2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
             # print(circuit[gate][3])
@@ -477,10 +474,6 @@ def TVSim(circuit, TVbatch, fault_list):
         inputs = list(circuit["INPUTS"][1])
         
         ###Commented out: Theta(n)=> exponential because of for loop?
-        ###implemented in netRead instead
-        ##Support for the WAS below
-        # for inp in inputs:
-        #     circuit[inp][3] = ""
         
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
         # line: string
@@ -543,7 +536,7 @@ def basic_sim(circuit, nodeLen):
 
         # Check if the terminals have been accessed
         for term in circuit[curr][1]:
-            if term in ['1', '0', 'U']:
+            if term in ["0"+"0" * (nodeLen), "0"+"1"*nodeLen, "0"+"U"*nodeLen]: #['1', '0', 'U']:
                 continue
             elif not circuit[term][2]:
                 term_has_value = False
@@ -840,7 +833,8 @@ def main():
     #0 will hold the total value
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
     
-    A, B = TVSim(circuit, ["100", "001"], faults_for_A)
+    #A, B = TVSim(circuit, ["101010101010101010101010101010101010", "010101010101010101010101010101010101"], faults_for_A)
+    A, B = TVSim(circuit, ["101", "010"], faults_for_A)
 
     input("\n B=" + str(B))
     for batch in range(0, 25):        
