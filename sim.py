@@ -108,7 +108,10 @@ def readFaults(allFaults, faultFile):
 def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
     detectedFaults = 0
     undetectedFaults = []
+    
     for x in activeFaults:
+        detected = False
+        print("Current fault:", x)
         circuit = copy.deepcopy(inputCircuit)
 
         xSplit = x.split("-SA-") #WAS  xSplit = x[0].split("-SA-")
@@ -139,10 +142,13 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
                 print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                 break
             XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
+            print(circuit[y][3] + " ^ " + goodOutput[increment] + " = " + str(XORed))
             if XORed > 0:
-                detectedFaults += 1
-            else:
-                undetectedFaults.append(x)
+                detected = True
+        if detected:
+            detectedFaults += 1
+        else:
+            undetectedFaults.append(x)
     print("...done\n\n")             
     return [undetectedFaults, detectedFaults]
     
@@ -325,7 +331,7 @@ def gateCalc(circuit, node, nodeLen):
         # printCkt(circuit)
         # print("GATE:"+gate)
         if gate in ['0', '1', 'U']:
-            gate = int(("0" + (gate * nodeLen)), 2)  # Turning the gate into an int and appending it to the terminals
+            gate = int(gate)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
             # print(circuit[gate][3])
@@ -335,7 +341,7 @@ def gateCalc(circuit, node, nodeLen):
     # terminals = list(circuit[node][1])
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + ~terminals[0])
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~terminals[0]))
         return circuit
 
     # If the node is a buffer gate output, solve and return the output
@@ -357,7 +363,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" + ("1" * nodeLen), 2)
         for term in terminals:
             output = output & term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + ~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
         return circuit
 
     # If the node is an OR gate output, solve and return the output
@@ -373,7 +379,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + ~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
         return circuit
 
     # If the node is an XOR gate output, solve and return the output
@@ -389,7 +395,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + ~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
         return circuit
 
     # Error detection... should not be able to get at this point
@@ -832,7 +838,9 @@ def main():
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
     
     A, B = TVSim(circuit, ["000000000000000000000000000000000000000000000000000000000000000000000"], faults_for_A)
-
+    print("A=",end='')
+    print(A)
+    input("\n B=" + str(B))
     for batch in range(0, 25):        
         tempA, tempB, tempC, tempD, tempE = 0,0,0,0,0
         circuit = copy.deepcopy(newCircuit)
