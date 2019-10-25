@@ -139,7 +139,7 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput):
                 print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                 break
             XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
-            if XORed > 0:
+            if XORed < 0:
                 detectedFaults += 1
             else:
                 undetectedFaults.append(x)
@@ -815,6 +815,7 @@ def main():
     #0 will hold the total value
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
     
+    A, B = TVSim(circuit, ["000000000000000000000000000000000000000000000000000000000000000000000"], faults_for_A)       
 
     for batch in range(0, 25):        
         tempA, tempB, tempC, tempD, tempE = 0,0,0,0,0
