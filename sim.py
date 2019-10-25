@@ -118,7 +118,10 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
 
         # Get the value to which the node is stuck at
         value = xSplit[1]
-
+        # if value != "0": #SAM Gotta make sure you have enough bits
+        #     value = bin(2 ** nodeLen - 1)[2:]
+        # else:
+        #     value = value.zfill(nodeLen)
         currentFault = "wire_" + xSplit[0]
 
         if "-IN-" not in currentFault:
@@ -136,8 +139,8 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
 
         # print("AFTER:")
         # printCkt(circuit)
-        increment = 0
-        for y in circuit["OUTPUTS"][1]:
+        #increment = 0
+        for increment, y in enumerate(circuit["OUTPUTS"][1]):
             if not circuit[y][2]:
                 print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                 break
@@ -476,8 +479,8 @@ def TVSim(circuit, TVbatch, fault_list):
         ###Commented out: Theta(n)=> exponential because of for loop?
         ###implemented in netRead instead
         ##Support for the WAS below
-        #for inp in inputs:
-        #    circuit[inp][3] = ""
+        # for inp in inputs:
+        #     circuit[inp][3] = ""
         
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
         # line: string
@@ -837,9 +840,8 @@ def main():
     #0 will hold the total value
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
     
-    A, B = TVSim(circuit, ["000000000000000000000000000000000000000000000000000000000000000000000"], faults_for_A)
-    print("A=",end='')
-    print(A)
+    A, B = TVSim(circuit, ["100", "001"], faults_for_A)
+
     input("\n B=" + str(B))
     for batch in range(0, 25):        
         tempA, tempB, tempC, tempD, tempE = 0,0,0,0,0
