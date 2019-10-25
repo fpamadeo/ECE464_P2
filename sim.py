@@ -105,13 +105,13 @@ def readFaults(allFaults, faultFile):
 
 
 # FUNCTION:
-def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, faultFile):
+def fault_sim(circuit, activeFaults, inputCircuit, goodOutput):
     detectedFaults = 0
     undetectedFaults = []
     for x in activeFaults:
         circuit = copy.deepcopy(inputCircuit)
 
-        xSplit = x[0].split("-SA-")
+        xSplit = x.split("-SA-") #WAS  xSplit = x[0].split("-SA-")
 
         # Get the value to which the node is stuck at
         value = xSplit[1]
@@ -140,11 +140,11 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, faultFile):
                 break
             XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
             if XORed > 0:
-                detectedFault += 1
+                detectedFaults += 1
             else:
                 undetectedFaults.append(x)
                 
-    return [undetectedFaults, detectedFaults]
+    return undetectedFaults, detectedFaults
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Neatly prints the Circuit Dictionary:
@@ -464,7 +464,7 @@ def TVSim(circuit, TVbatch, fault_list):
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
         for bitVal in line:
             bitVal = bitVal.upper()  # in the case user input lower-case u
-            circuit[inputs[i]][3].append(bitVal)  # put the bit value as the line value
+            circuit[inputs[i]][3] = bitVal  # put the bit value as the line value
             if not circuit[inputs[i]][2]:
                 circuit[inputs[i]][2] = True  # and make it so that this line is accessed if it hasn't already
 
@@ -758,15 +758,15 @@ def main():
     user_TV_array.append(importTVs(open("TV_D.txt", "r"), batchSize))
     user_TV_array.append(importTVs(open("TV_E.txt", "r"), batchSize))
 
-    if not cktOnly:
-        allFaults = genFaultList(circuit)
-        if genOnly:
-            exit()
-        faultFile = "f_list.txt"
-        activeFaults = readFaults(allFaults, faultFile)
-        if len(activeFaults) < 1:
-            print("ERROR: No compatible faults found in f_list.txt")
-            exit()
+    # if not cktOnly:
+    #     allFaults = genFaultList(circuit)
+    #     if genOnly:
+    #         exit()
+    #     faultFile = "f_list.txt"
+    #     activeFaults = readFaults(allFaults, faultFile)
+    #     if len(activeFaults) < 1:
+    #         print("ERROR: No compatible faults found in f_list.txt")
+    #         exit()
     # keep an initial (unassigned any value) copy of the circuit for an easy reset
     newCircuit = copy.deepcopy(circuit)
 
@@ -802,6 +802,8 @@ def main():
     print("\n *** Simulating the" + inputName + " file and will output in" + outputName + "*** \n")
     inputFile = open(inputName, "r")
     outputFile = open(outputName, "w")
+
+    A, B = TVSim(circuit, ["000000"], genFaultList(circuit))
 
     if not cktOnly:
         faultFile = open("fault_sim_result.txt", "w")
