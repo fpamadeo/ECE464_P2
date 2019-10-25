@@ -322,17 +322,19 @@ def gateCalc(circuit, node, nodeLen):
     terminals = []
     # terminal will contain all the input wires of this logic gate (node)
     for gate in list(circuit[node][1]):
+        printCkt(circuit)
         if gate in ['0', '1', 'U']:
-            gate = int("0" + (gate * nodeLen), 2)  # Turning the gate into an int and appending it to the terminals
+            gate = int(("0" + (gate * nodeLen)), 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
-            gate = int("0" + circuit[gate][3], 2)
+            print(circuit[gate][3])
+            gate = int(("0" + circuit[gate][3]), 2)
             terminals.append(gate)
     # print(terminals)
     # terminals = list(circuit[node][1])
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~terminals[0])
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(-1 * ~terminals[0])
         return circuit
 
     # If the node is a buffer gate output, solve and return the output
@@ -354,7 +356,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" + ("1" * nodeLen), 2)
         for term in terminals:
             output = output & term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(-1*~output)
         return circuit
 
     # If the node is an OR gate output, solve and return the output
@@ -370,7 +372,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(-1*~output)
         return circuit
 
     # If the node is an XOR gate output, solve and return the output
@@ -386,7 +388,7 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" +("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(~output)
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(-1*~output)
         return circuit
 
     # Error detection... should not be able to get at this point
@@ -448,7 +450,6 @@ def TVSim(circuit, TVbatch, fault_list):
 
     # For every TV, we update our inputs 
     for line in TVbatch:
-
 
         # TV count increments up
         TVcount += 1
