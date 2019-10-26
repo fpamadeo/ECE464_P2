@@ -111,7 +111,7 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
     
     for x in activeFaults:
         detected = False
-        print("Current fault:", x)
+        #print("Current fault:", x)
         circuit = copy.deepcopy(inputCircuit)
 
         xSplit = x.split("-SA-") #WAS  xSplit = x[0].split("-SA-")
@@ -142,7 +142,7 @@ def fault_sim(circuit, activeFaults, inputCircuit, goodOutput, nodeLen):
                 print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                 break
             XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
-            print(circuit[y][3] + " ^ " + goodOutput[increment] + " = " + str(XORed))
+            #print(circuit[y][3] + " ^ " + goodOutput[increment] + " = " + str(XORed))
             if XORed > 0:
                 detected = True
         if detected:
@@ -829,14 +829,26 @@ def main():
     faults_for_C = genFaultList(circuit)
     faults_for_D = genFaultList(circuit)
     faults_for_E = genFaultList(circuit)
-
+    total_fault_size = len(faults_for_A)
     #0 will hold the total value
     tv_detection_values = [[len(faults_for_A)], [len(faults_for_B)], [len(faults_for_C)], [len(faults_for_D)], [len(faults_for_E)]]
-    
-    #A, B = TVSim(circuit, ["101010101010101010101010101010101010", "010101010101010101010101010101010101"], faults_for_A)
-    A, B = TVSim(circuit, ["101", "010"], faults_for_A)
-
-    input("\n B=" + str(B))
+   
+    t1 = time.perf_counter()
+    # temp = 0
+    # A, B = TVSim(circuit, ["000000000000000000000000000000000000000"], faults_for_A)
+    # circuit = copy.deepcopy(newCircuit)
+    # B += temp
+    # A, B = TVSim(circuit, ["111111111111111111111111111111111111111"], A)
+    # circuit = copy.deepcopy(newCircuit)
+    # B += temp
+    # A, B = TVSim(circuit, ["101010101010101010101010101010101010"], A)
+    # circuit = copy.deepcopy(newCircuit)
+    # B += temp
+    # A, B = TVSim(circuit, ["010101010101010101010101010101010101"], A)
+    # circuit = copy.deepcopy(newCircuit)
+    # B += temp
+    # print("Time: " + str(time.perf_counter() - t1))
+    # input("\n B=" + str(B))
     for batch in range(0, 25):        
         tempA, tempB, tempC, tempD, tempE = 0,0,0,0,0
         circuit = copy.deepcopy(newCircuit)
@@ -868,6 +880,12 @@ def main():
         tv_detection_values[2].append(tempC)
         tv_detection_values[3].append(tempD)
         tv_detection_values[4].append(tempE)
+
+        tempA = 100*(tempA/total_fault_size)
+        tempB = 100*(tempB/total_fault_size)
+        tempC = 100*(tempC/total_fault_size)
+        tempD = 100*(tempD/total_fault_size)
+        tempE = 100*(tempE/total_fault_size)
 
         csvFile.write(str(batch+1) + ", " + str(tempA) + ", " + str(tempB) + ", " + str(tempC) + ", " + str(tempD) + ", " + str(tempE) + "\n")
 
