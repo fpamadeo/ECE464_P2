@@ -24,7 +24,7 @@ import time
 def genFaultList(circuit):
     # Open a txt file to write our things on
     # If file doesn't exist, it will be made using the name given
-    #output = open("fault_list.txt", "w")
+    # output = open("fault_list.txt", "w")
 
     # Creating a list to be returned to the main code
     allFaults = []
@@ -34,35 +34,35 @@ def genFaultList(circuit):
         # ... write input-SA-0/1 to ...
         toWrite = x[5:] + "-SA-"
         # ... the txt file,...
-        #output.write(toWrite + "0\n")
-        #output.write(toWrite + "1\n\n")
+        # output.write(toWrite + "0\n")
+        # output.write(toWrite + "1\n\n")
         # ... the list, and ...
         allFaults.append(toWrite + "0")
         allFaults.append(toWrite + "1")
         # ... onto the screen
-        #print(toWrite + "0\n" + toWrite + "1")
+        # print(toWrite + "0\n" + toWrite + "1")
 
     # Go over all the gates and ...
     for x in circuit["GATES"][1]:
         # ... do the same thing to the gate outputs
         toWrite = x[5:] + "-SA-"
-        #output.write(toWrite + "0\n")
-        #output.write(toWrite + "1\n")
+        # output.write(toWrite + "0\n")
+        # output.write(toWrite + "1\n")
         allFaults.append(toWrite + "0")
         allFaults.append(toWrite + "1")
-        #print(toWrite + "0\n" + toWrite + "1")
+        # print(toWrite + "0\n" + toWrite + "1")
 
         # ... Also, go over all of the gates' inputs and ...
         for y in circuit[x][1]:
             # do the same thing except name it OUTPUT-IN-INPUT-SA-0/1
             toWrite0 = x[5:] + "-IN-" + y[5:] + "-SA-"
-            #output.write(toWrite0 + "0\n")
-            #output.write(toWrite0 + "1\n")
+            # output.write(toWrite0 + "0\n")
+            # output.write(toWrite0 + "1\n")
             allFaults.append(toWrite0 + "0")
             allFaults.append(toWrite0 + "1")
-            #print(toWrite0 + "0\n" + toWrite0 + "1")
-        #output.write("\n")
-    #input("Press Enter To Continue...")
+            # print(toWrite0 + "0\n" + toWrite0 + "1")
+        # output.write("\n")
+    # input("Press Enter To Continue...")
     return allFaults
 
 
@@ -107,13 +107,13 @@ def readFaults(allFaults, faultFile):
 # FUNCTION:
 def fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
     detectedFaults = [0 for _ in range(0, 25)]
-    
+
     for x in activeFaults:
         detected = False
-        #print("Current fault:", x)
+        # print("Current fault:", x)
         circuit = copy.deepcopy(inputCircuit)
 
-        xSplit = x.split("-SA-") #WAS  xSplit = x[0].split("-SA-")
+        xSplit = x.split("-SA-")  # WAS  xSplit = x[0].split("-SA-")
 
         # Get the value to which the node is stuck at
         value = xSplit[1]
@@ -135,24 +135,24 @@ def fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
 
         # print("AFTER:")
         # printCkt(circuit)
-        #increment = 0
-        #for increment, y in enumerate(circuit["OUTPUTS"][1]):
-            
-            # faultOutput = circuit[y][3]
-            # rightOutput = goodOutput[increment]
-        for batch in range(0,25):
+        # increment = 0
+        # for increment, y in enumerate(circuit["OUTPUTS"][1]):
+
+        # faultOutput = circuit[y][3]
+        # rightOutput = goodOutput[increment]
+        for batch in range(0, 25):
             for increment, y in enumerate(circuit["OUTPUTS"][1]):
                 if not circuit[y][2]:
                     print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                     break
-                ending_position = batchSize*(batch+1)
-                curr_Good = int(goodOutput[increment][:ending_position],2)
-                curr_Fault = int(circuit[y][3][:ending_position],2)
+                ending_position = batchSize * (batch + 1)
+                curr_Good = int(goodOutput[increment][:ending_position], 2)
+                curr_Fault = int(circuit[y][3][:ending_position], 2)
 
                 XORed = curr_Fault ^ curr_Good
                 if XORed != 0:
                     detected = True
-                    #print(x)
+                    # print(x)
                     for temp in range(batch, 25):
                         detectedFaults[temp] += 1
                     break
@@ -161,7 +161,7 @@ def fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
                 #     print(x)
                 break
             # XORed = int(circuit[y][3],2) ^ int(goodOutput[increment],2)
-            #print(circuit[y][3] + " ^ " + goodOutput[increment] + " = " + str(XORed))
+            # print(circuit[y][3] + " ^ " + goodOutput[increment] + " = " + str(XORed))
             # if XORed > 0:
             #     detected = True
             #     break
@@ -169,9 +169,10 @@ def fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
         #     detectedFaults += 1
         # else:
         #     undetectedFaults.append(x)
-    print("...done\n\n")             
+    print("...done\n\n")
     return detectedFaults
-    
+
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Neatly prints the Circuit Dictionary:
 def printCkt(circuit):
@@ -350,8 +351,8 @@ def gateCalc(circuit, node, nodeLen):
     for gate in list(circuit[node][1]):
         # printCkt(circuit)
         # print("GATE:"+gate)
-        if gate in ['0'*nodeLen, '1'*nodeLen, 'U'*nodeLen]:
-            gate = int("0" + gate,2)  # Turning the gate into an int and appending it to the terminals
+        if gate in ['0' * nodeLen, '1' * nodeLen, 'U' * nodeLen]:
+            gate = int("0" + gate, 2)  # Turning the gate into an int and appending it to the terminals
             terminals.append(gate)
         else:
             # print(circuit[gate][3])
@@ -361,7 +362,7 @@ def gateCalc(circuit, node, nodeLen):
     # terminals = list(circuit[node][1])
     # If the node is an Inverter gate output, solve and return the output
     if circuit[node][0] == "NOT":
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~terminals[0]))
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2 ** nodeLen) + (~terminals[0]))
         return circuit
 
     # If the node is a buffer gate output, solve and return the output
@@ -383,12 +384,12 @@ def gateCalc(circuit, node, nodeLen):
         output = int("0" + ("1" * nodeLen), 2)
         for term in terminals:
             output = output & term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2 ** nodeLen) + (~output))
         return circuit
 
     # If the node is an OR gate output, solve and return the output
     elif circuit[node][0] == "OR":
-        output = int("0" +("0" * nodeLen), 2)
+        output = int("0" + ("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(output)
@@ -396,15 +397,15 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an NOR gate output, solve and return the output
     if circuit[node][0] == "NOR":
-        output = int("0" +("0" * nodeLen), 2)
+        output = int("0" + ("0" * nodeLen), 2)
         for term in terminals:
             output = output | term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2 ** nodeLen) + (~output))
         return circuit
 
     # If the node is an XOR gate output, solve and return the output
     if circuit[node][0] == "XOR":
-        output = int("0" +("0" * nodeLen), 2)
+        output = int("0" + ("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
         circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format(output)
@@ -412,10 +413,10 @@ def gateCalc(circuit, node, nodeLen):
 
     # If the node is an XNOR gate output, solve and return the output
     elif circuit[node][0] == "XNOR":
-        output = int("0" +("0" * nodeLen), 2)
+        output = int("0" + ("0" * nodeLen), 2)
         for term in terminals:
             output = output ^ term
-        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2**nodeLen) + (~output))
+        circuit[node][3] = ("{0:0" + str(nodeLen) + "b}").format((2 ** nodeLen) + (~output))
         return circuit
 
     # Error detection... should not be able to get at this point
@@ -476,7 +477,7 @@ def TVSim(circuit, TVbatch, fault_list, batchSize):
 
     print("UPDATING Inputs")
 
-    # For every TV, we update our inputs 
+    # For every TV, we update our inputs
     for line in TVbatch:
 
         # TV count increments up
@@ -493,21 +494,22 @@ def TVSim(circuit, TVbatch, fault_list, batchSize):
         # Since the for loop will start at the most significant bit, we start at input width N
         i = holdthecircuit["INPUT_WIDTH"][1] - 1
         inputs = list(holdthecircuit["INPUTS"][1])
-        
+
         ###Commented out: Theta(n)=> exponential because of for loop?
-        
+
         # dictionary item: [(bool) If accessed, (int) the value of each line, (int) layer number, (str) origin of U value]
         # line: string
         for bitVal in line:
             # bitVal = bitVal.upper()  # in the case user input lower-case u
-            holdthecircuit[inputs[i]][3] += bitVal  # put the bit value as the line value ##WAS circuit[inputs[i]][3].append(bitVal)
+            holdthecircuit[inputs[i]][
+                3] += bitVal  # put the bit value as the line value ##WAS circuit[inputs[i]][3].append(bitVal)
             holdthecircuit[inputs[i]][2] = True  # and make it so that this line is accessed if it hasn't already
 
             # In case the input has an invalid character (i.e. not "0", "1" or "U"), return an error flag
             if bitVal != "0" and bitVal != "1":
                 return -2
             i -= 1  # continuing the increments
-    
+
     print("Finished updating " + str(TVcount) + " inputs\n\n")
 
     print("Creating Reset Copy...")
@@ -517,7 +519,7 @@ def TVSim(circuit, TVbatch, fault_list, batchSize):
     print("...Done\n\n Simulating Good circuit now...")
     # Inputs should have len(TVlist)-bits first TV from the left to right
     basic_sim(holdthecircuit, TVcount)
-    
+
     print("...Done\n\nCreating goodOutput...")
     # Get the goodOutput
     goodOutput = []
@@ -530,6 +532,7 @@ def TVSim(circuit, TVbatch, fault_list, batchSize):
     print("Simulating bad circuits...")
     # Get the fault sim. which should output the percentage
     return fault_sim(fault_list, circReset, goodOutput, TVcount, batchSize)
+
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: the actual simulation #
@@ -557,7 +560,7 @@ def basic_sim(circuit, nodeLen):
 
         # Check if the terminals have been accessed
         for term in circuit[curr][1]:
-            if term in ["0" * (nodeLen), "1"*nodeLen, "U"*nodeLen]: #['1', '0', 'U']:
+            if term in ["0" * (nodeLen), "1" * nodeLen, "U" * nodeLen]:  # ['1', '0', 'U']:
                 continue
             elif not circuit[term][2]:
                 term_has_value = False
@@ -597,7 +600,7 @@ def TVA_gen(counterBin, inputSize):
         currVal = counterBin[x]
         binVal = bin(currVal)[2:].zfill(inputSize)
         finalVal = str(binVal)
-        finalVal = finalVal[-1*inputSize:]
+        finalVal = finalVal[-1 * inputSize:]
         TVA_list.append(finalVal + "\n")
     return TVA_list
 
@@ -609,9 +612,11 @@ def TVB_gen(counterBin, inputSize):
     for x in range(0, 255):
         currVal = counterBin[x]
         binVal = bin(currVal)[2:].zfill(8)
-        finalVal = str(binVal) * 5 #<-- might be a problem in big circuit
-        finalVal = finalVal[-1*inputSize:]
+        iteration = inputSize // 8 + 1
+        finalVal = str(binVal) * iteration
+        finalVal = finalVal[-1 * inputSize:]
         TVB_list.append(finalVal + "\n")
+
     return TVB_list
 
 
@@ -627,7 +632,7 @@ def TVC_gen(counterBin, inputSize):
             tempBin = tempVal + tempBin
             # print(tempBin)
             currVal += 1
-        TVC_list.append(tempBin[-1*inputSize:] + "\n")
+        TVC_list.append(tempBin[-1 * inputSize:] + "\n")
     return TVC_list
 
 
@@ -691,23 +696,20 @@ def main():
 
     # Used for file access
     script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
-    genOnly = False
-    cktOnly = False
+    genSeedOnly = False
+    cktSimulation = False
     print("Circuit Simulator:")
 
     while True:
         print("\n Pick a selection:")
-        print(" (1) Fault generator")
-        print(" (2) Circuit Simulator")
-        print(" (3) Fault Simulator")
-        userInput = input("\n Select from 1-3: ")
+        print(" (1) Test Vector Generation")
+        print(" (2) Fault Coverage Simulation")
+        userInput = input("\n Select from 1-2: ")
         if userInput == "1":
-            genOnly = True
+            genSeedOnly = True
             break
         elif userInput == "2":
-            cktOnly = True
-            break
-        elif userInput == '3':
+            cktSimulation = True
             break
 
     # Select circuit benchmark file, default is circuit.bench
@@ -731,59 +733,73 @@ def main():
     # printCkt(circuit)
 
     # project 2
-    while True:
-        seed = input("What is your seed value in integer: ")
-        if seed.isdigit():
-            seed = int(seed)
-            if ((seed <= 255) and (seed > 0)):
-                break
-
-    while True:
-        batchSize = input("Choose a batch size in [1, 10]: ")
-        if batchSize.isdigit():
-            batchSize = int(batchSize)
-            if ((batchSize < 255) and (batchSize > 0)):
-                break
+    if genSeedOnly:
+        while True:
+            seed = input("What is your seed value in integer: ")
+            if seed.isdigit():
+                seed = int(seed)
+                if ((seed <= 255) and (seed > 0)):
+                    break
+    if cktSimulation:
+        while True:
+            batchSize = input("Choose a batch size in [1, 10]: ")
+            if batchSize.isdigit():
+                batchSize = int(batchSize)
+                if ((batchSize < 255) and (batchSize > 0)):
+                    break
 
     # Create TV files here
-    counterBin = counterGen(seed)
-    lfsrSeqBin = lfsrGen(seed)  # creates lfsr based on the seed
-    inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
+    if genSeedOnly:
+        counterBin = counterGen(seed)
+        lfsrSeqBin = lfsrGen(seed)  # creates lfsr based on the seed
+        inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
 
-    TVA_Output = open(os.path.join(script_dir, "TV_A.txt"), "w")
-    for a in TVA_gen(counterBin, inputSize):
-        TVA_Output.write(a)
-        #TVA_Output.write(hex(int(a, 2)) + "\n")
-    TVA_Output.close()
+        TVA_Output = open(os.path.join(script_dir, "TV_A.txt"), "w")
+        for a in TVA_gen(counterBin, inputSize):
+            TVA_Output.write(a)
+            # TVA_Output.write(hex(int(a, 2)) + "\n")
+        TVA_Output.close()
 
-    TVB_Output = open(os.path.join(script_dir, "TV_B.txt"), "w")
-    for b in TVB_gen(counterBin, inputSize):
-        TVB_Output.write(b)
-        #TVB_Output.write(hex(int(b, 2)) + "\n")
-    TVB_Output.close()
+        TVB_Output = open(os.path.join(script_dir, "TV_B.txt"), "w")
+        for b in TVB_gen(counterBin, inputSize):
+            TVB_Output.write(b)
+            # TVB_Output.write(hex(int(b, 2)) + "\n")
+        TVB_Output.close()
 
-    TVC_Output = open(os.path.join(script_dir, "TV_C.txt"), "w")
-    for c in TVC_gen(counterBin, inputSize):
-        TVC_Output.write(c)
-        #TVC_Output.write(hex(int(c, 2)) + "\n")
-    TVC_Output.close()
+        TVC_Output = open(os.path.join(script_dir, "TV_C.txt"), "w")
+        for c in TVC_gen(counterBin, inputSize):
+            TVC_Output.write(c)
+            # TVC_Output.write(hex(int(c, 2)) + "\n")
+        TVC_Output.close()
 
-    TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
-    for d in TVD_gen(inputSize, lfsrSeqBin):
-        TVD_Output.write(d)
-        #TVD_Output.write(hex(int(d, 2)) + "\n")
-    TVD_Output.close()
+        TVD_Output = open(os.path.join(script_dir, "TV_D.txt"), "w")
+        for d in TVD_gen(inputSize, lfsrSeqBin):
+            TVD_Output.write(d)
+            # TVD_Output.write(hex(int(d, 2)) + "\n")
+        TVD_Output.close()
 
-    TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
-    for e in TVE_gen(inputSize, lfsrSeqBin[255]):
-        TVE_Output.write(e)
-        #TVE_Output.write(hex(int(e, 2)) + "\n")
-    TVE_Output.close()
+        TVE_Output = open(os.path.join(script_dir, "TV_E.txt"), "w")
+        for e in TVE_gen(inputSize, lfsrSeqBin[255]):
+            TVE_Output.write(e)
+            # TVE_Output.write(hex(int(e, 2)) + "\n")
+        TVE_Output.close()
+        print("TV's A - E processed with seed: " + str(seed))
 
     # Make header for the csv file
-    #NEED TO make a hook to find i can make this file
-    csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
-    csvFile.write("Batch #, A, B, C, D, E, seed = " + repr(seed) + ", Batch size = " + repr(batchSize) + "\n")
+    # NEED TO make a hook to find i can make this file
+    if cktSimulation:
+        csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
+        getSeed = open("TV_A.txt", "r")
+        seed = getSeed.readline()
+        sig = 0
+        seedLength = 0
+        for s in seed:
+            if s == "1":
+                seedLength = sig
+            sig += 1
+        seed = seed[seedLength:sig-1]
+
+        csvFile.write("Batch #, A, B, C, D, E, seed = " + str(seed) + ", Batch size = " + repr(batchSize) + "\n")
     # start_time = time.time()
     # print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -797,7 +813,7 @@ def main():
     #         print("ERROR: No compatible faults found in f_list.txt")
     #         exit()
     # keep an initial (unassigned any value) copy of the circuit for an easy reset
-    newCircuit = copy.deepcopy(circuit)
+    # newCircuit = copy.deepcopy(circuit)
 
     # # Select input file, default is input.txt
     # while True:
@@ -831,135 +847,136 @@ def main():
     # print("\n *** Simulating the" + inputName + " file and will output in" + outputName + "*** \n")
     # inputFile = open(inputName, "r")
     # outputFile = open(outputName, "w")
+    if cktSimulation:
+        full_faults = genFaultList(circuit)
+        total_fault_size = round(100 / len(full_faults), 3)
 
-    full_faults = genFaultList(circuit)
-    total_fault_size = round(100/len(full_faults),3)
-   
-    t1 = time.perf_counter()
-    # temp = 0
-    #A = TVSim(circuit, ["000000000000000000000000000000000000000", "111111111111111111111111111111111111111", "101010101010101010101010101010101010", "010101010101010101010101010101010101"], faults_for_A, 1)
-    # temp += B
+        t1 = time.perf_counter()
+        # temp = 0
+        # A = TVSim(circuit, ["000000000000000000000000000000000000000", "111111111111111111111111111111111111111", "101010101010101010101010101010101010", "010101010101010101010101010101010101"], faults_for_A, 1)
+        # temp += B
 
-    # print("Time: " + str(time.perf_counter() - t1))
-    # input("\n B=" + str(temp))
+        # print("Time: " + str(time.perf_counter() - t1))
+        # input("\n B=" + str(temp))
 
-    tempA = TVSim(circuit, importTVs(open("TV_A.txt", "r")), full_faults, batchSize)
-    tempB = TVSim(circuit, importTVs(open("TV_B.txt", "r")), full_faults, batchSize)
-    tempC = TVSim(circuit, importTVs(open("TV_C.txt", "r")), full_faults, batchSize)
-    tempD = TVSim(circuit, importTVs(open("TV_D.txt", "r")), full_faults, batchSize)
-    tempE = TVSim(circuit, importTVs(open("TV_E.txt", "r")), full_faults, batchSize)
+        tempA = TVSim(circuit, importTVs(open("TV_A.txt", "r")), full_faults, batchSize)
+        tempB = TVSim(circuit, importTVs(open("TV_B.txt", "r")), full_faults, batchSize)
+        tempC = TVSim(circuit, importTVs(open("TV_C.txt", "r")), full_faults, batchSize)
+        tempD = TVSim(circuit, importTVs(open("TV_D.txt", "r")), full_faults, batchSize)
+        tempE = TVSim(circuit, importTVs(open("TV_E.txt", "r")), full_faults, batchSize)
 
-    print(tempA)
-    print(tempB)
-    print(tempC)
-    print(tempD)
-    print(tempE)
-    for i in range(0,25):
-        csvFile.write(str(i+1) + ", " + str(tempA[i]*total_fault_size) + ", " + str(tempB[i]*total_fault_size) 
-        + ", " + str(tempC[i]*total_fault_size) + ", " + str(tempD[i]*total_fault_size) + ", " + str(tempE[i]*total_fault_size) + "\n")
-    # if(batch != 0):
+        print(tempA)
+        print(tempB)
+        print(tempC)
+        print(tempD)
+        print(tempE)
+        for i in range(0, 25):
+            csvFile.write(str(i + 1) + ", " + str(tempA[i] * total_fault_size) + ", " + str(tempB[i] * total_fault_size)
+                          + ", " + str(tempC[i] * total_fault_size) + ", " + str(tempD[i] * total_fault_size) + ", " + str(
+                tempE[i] * total_fault_size) + "\n")
+        # if(batch != 0):
 
-    #     tempA = tv_detection_values[0][-1] + tempA
-    #     tempB = tv_detection_values[1][-1] + tempB
-    #     tempC = tv_detection_values[2][-1] + tempC
-    #     tempD = tv_detection_values[3][-1] + tempD
-    #     tempE = tv_detection_values[4][-1] + tempE
+        #     tempA = tv_detection_values[0][-1] + tempA
+        #     tempB = tv_detection_values[1][-1] + tempB
+        #     tempC = tv_detection_values[2][-1] + tempC
+        #     tempD = tv_detection_values[3][-1] + tempD
+        #     tempE = tv_detection_values[4][-1] + tempE
 
-    # tv_detection_values[0].append(tempA)
-    # tv_detection_values[1].append(tempB)
-    # tv_detection_values[2].append(tempC)    
-    # tv_detection_values[3].append(tempD)
-    # tv_detection_values[4].append(tempE)
+        # tv_detection_values[0].append(tempA)
+        # tv_detection_values[1].append(tempB)
+        # tv_detection_values[2].append(tempC)
+        # tv_detection_values[3].append(tempD)
+        # tv_detection_values[4].append(tempE)
 
-    # tempA = 100*(tempA/total_fault_size)
-    # tempB = 100*(tempB/total_fault_size)
-    # tempC = 100*(tempC/total_fault_size)
-    # tempD = 100*(tempD/total_fault_size)
-    # tempE = 100*(tempE/total_fault_size)
+        # tempA = 100*(tempA/total_fault_size)
+        # tempB = 100*(tempB/total_fault_size)
+        # tempC = 100*(tempC/total_fault_size)
+        # tempD = 100*(tempD/total_fault_size)
+        # tempE = 100*(tempE/total_fault_size)
 
-    # csvFile.write(str(batch+1) + ", " + str(tempA) + ", " + str(tempB) + ", " + str(tempC) + ", " + str(tempD) + ", " + str(tempE) + "\n")
+        # csvFile.write(str(batch+1) + ", " + str(tempA) + ", " + str(tempB) + ", " + str(tempC) + ", " + str(tempD) + ", " + str(tempE) + "\n")
 
-    print("Time: " + str(time.perf_counter() - t1))
+        print("Time: " + str(time.perf_counter() - t1))
 
-    # if not cktOnly:
-    #     faultFile = open("fault_sim_result.txt", "w")
+        # if not cktOnly:
+        #     faultFile = open("fault_sim_result.txt", "w")
 
-    # # Runs the simulator for each line of the input file
-    # for line in inputFile:
-    #     # Initializing output variable each input line
-    #     output = ""
+        # # Runs the simulator for each line of the input file
+        # for line in inputFile:
+        #     # Initializing output variable each input line
+        #     output = ""
 
-    #     # Do nothing else if empty lines, ...
-    #     if (line == "\n"):
-    #         continue
-    #     # ... or any comments
-    #     if (line[0] == "#"):
-    #         continue
+        #     # Do nothing else if empty lines, ...
+        #     if (line == "\n"):
+        #         continue
+        #     # ... or any comments
+        #     if (line[0] == "#"):
+        #         continue
 
-    #     # Removing the the newlines at the end and then output it to the txt file
-    #     line = line.replace("\n", "")
-    #     outputFile.write(line)
-    #     if not cktOnly:
-    #         faultFile.write(line)
-    #     # Removing spaces
-    #     line = line.replace(" ", "")
+        #     # Removing the the newlines at the end and then output it to the txt file
+        #     line = line.replace("\n", "")
+        #     outputFile.write(line)
+        #     if not cktOnly:
+        #         faultFile.write(line)
+        #     # Removing spaces
+        #     line = line.replace(" ", "")
 
-    #     print("\n ---> Now ready to simulate INPUT = " + line)
-    #     circuit = inputRead(circuit, line)
+        #     print("\n ---> Now ready to simulate INPUT = " + line)
+        #     circuit = inputRead(circuit, line)
 
-    #     if circuit == -1 or circuit == -2:
-    #         print("INPUT ERROR: INSUFFICIENT BITS")
-    #         print("INPUT ERROR: INVALID INPUT VALUE/S")
-    #         # After each input line is finished, reset the netList
-    #         circuit = newCircuit
-    #         continue
+        #     if circuit == -1 or circuit == -2:
+        #         print("INPUT ERROR: INSUFFICIENT BITS")
+        #         print("INPUT ERROR: INVALID INPUT VALUE/S")
+        #         # After each input line is finished, reset the netList
+        #         circuit = newCircuit
+        #         continue
 
-    #     # printCkt(circuit)
-    #     inputCircuit = copy.deepcopy(circuit)
-    #     circuit = basic_sim(circuit)
-    #     print("\n *** Finished simulation - resulting circuit: \n")
-    #     # printCkt(circuit)
+        #     # printCkt(circuit)
+        #     inputCircuit = copy.deepcopy(circuit)
+        #     circuit = basic_sim(circuit)
+        #     print("\n *** Finished simulation - resulting circuit: \n")
+        #     # printCkt(circuit)
 
-    #     for y in circuit["OUTPUTS"][1]:
-    #         if not circuit[y][2]:
-    #             output = "NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED"
-    #             break
-    #         output = str(circuit[y][3]) + output
+        #     for y in circuit["OUTPUTS"][1]:
+        #         if not circuit[y][2]:
+        #             output = "NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED"
+        #             break
+        #         output = str(circuit[y][3]) + output
 
-    #     print("\n *** Summary of simulation: ")
-    #     print(line + " -> " + output + " written into output file. \n")
-    #     outputFile.write(" -> " + output + "\n")
-    #     if not cktOnly:
-    #         faultFile.write(" -> " + output + "\n")
-    #     # Now, work on each given fault
-    #     if not cktOnly:
-    #         activeFaults = fault_sim(circuit, activeFaults, inputCircuit, output, faultFile)
+        #     print("\n *** Summary of simulation: ")
+        #     print(line + " -> " + output + " written into output file. \n")
+        #     outputFile.write(" -> " + output + "\n")
+        #     if not cktOnly:
+        #         faultFile.write(" -> " + output + "\n")
+        #     # Now, work on each given fault
+        #     if not cktOnly:
+        #         activeFaults = fault_sim(circuit, activeFaults, inputCircuit, output, faultFile)
 
-    #     input("Press Enter to Continue...")
+        #     input("Press Enter to Continue...")
 
-    #     # After each input line is finished, reset the circuit
-    #     print("\n *** Now resetting circuit back to unknowns... \n")
+        #     # After each input line is finished, reset the circuit
+        #     print("\n *** Now resetting circuit back to unknowns... \n")
 
-    #     circuit = copy.deepcopy(newCircuit)
+        #     circuit = copy.deepcopy(newCircuit)
 
-    #     # print("\n circuit after resetting: \n")
-    #     # printCkt(circuit)
-    #     print("\n*******************\n")
+        #     # print("\n circuit after resetting: \n")
+        #     # printCkt(circuit)
+        #     print("\n*******************\n")
 
-    # if not cktOnly:
-    #     i = 0.0
-    #     for x in activeFaults:
-    #         if x[1]:
-    #             i += 1
-    #     print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
-    #         round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
-    #     faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
-    #         round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
+        # if not cktOnly:
+        #     i = 0.0
+        #     for x in activeFaults:
+        #         if x[1]:
+        #             i += 1
+        #     print("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
+        #         round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
+        #     faultFile.write("fault coverage:" + str(i) + "/" + str(len(activeFaults)) + "=" + str(
+        #         round(100.0 * float(i) / float(len(activeFaults)), 2)) + "%")
 
-    #     faultFile.close()
-    # outputFile.close()
-    csvFile.close()
-    # exit()
+        #     faultFile.close()
+        # outputFile.close()
+        csvFile.close()
+        # exit()
 
 
 if __name__ == "__main__":
