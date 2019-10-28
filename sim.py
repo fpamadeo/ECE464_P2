@@ -768,7 +768,7 @@ def main():
 
     if cktSimulation:
         full_faults = genFaultList(circuit)
-        total_fault_size = round(100 / len(full_faults), 3)
+        total_fault_size = len(full_faults)
 
         t1 = time.perf_counter()
 
@@ -784,9 +784,9 @@ def main():
         print(tempD)
         print(tempE)
         for i in range(0, 25):
-            csvFile.write(str(i + 1) + ", " + str(tempA[i] * total_fault_size) + ", " + str(tempB[i] * total_fault_size)
-                          + ", " + str(tempC[i] * total_fault_size) + ", " + str(tempD[i] * total_fault_size) + ", " + str(
-                tempE[i] * total_fault_size) + "\n")
+            csvFile.write(str(i + 1) + ", " + str(round((tempA[i]/total_fault_size)*100, 2)) + ", " + str(round((tempB[i]/total_fault_size)*100, 2))
+                          + ", " + str(round((tempC[i]/total_fault_size)*100, 2)) + ", " + str(round((tempD[i]/total_fault_size)*100, 2)) + ", " + 
+                          str(round((tempE[i]/total_fault_size)*100, 2)) + "\n")
 
        
         print("Time: " + str(time.perf_counter() - t1))
@@ -798,9 +798,12 @@ def main():
     if extraCredit:
         t1 = time.perf_counter()
         full_faults = genFaultList(circuit)
-        csvFile = open(os.path.join(script_dir, "f_avg_EXTRACREDIT.csv"), "w")
+        inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
+        total_fault_size = len(full_faults)
+        
+        csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
         csvFile.write("Batch #, A, B, C, D, E, seed = 1-255, Batch size = " + repr(batchSize) + "\n")
-        thickness = 256 #2 is the minmium #256 maximimum
+        thickness = 10 #2 is the minmium #256 maximimum
         with concurrent.futures.ProcessPoolExecutor() as executor:
             A = executor.map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) #inputsize
             B = executor.map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
@@ -834,9 +837,9 @@ def main():
                 detection_Avg[x][y] = detection_Avg[x][y]/(thickness-1) #divide by the input size to get the average
         
         for x in range(0, 25):
-            csvFile.write(str(x+1) + ", " + str(detection_Avg[0][x]*total_fault_size) + ", " + str(detection_Avg[1][x]*total_fault_size) 
-                + ", " + str(detection_Avg[2][x]*total_fault_size) + ", " + str(detection_Avg[3][x]*total_fault_size) + ", " 
-                + str(detection_Avg[4][x]*total_fault_size) + "\n")
+            csvFile.write(str(x+1) + ", " + str(round((detection_Avg[0][x]/total_fault_size)*100),2) + ", " + str(round((detection_Avg[1][x]/total_fault_size)*100),2)
+                + ", " + str(round((detection_Avg[2][x]/total_fault_size)*100),2) + ", " + str(round((detection_Avg[3][x]/total_fault_size)*100),2) + ", " 
+                + str(round((detection_Avg[4][x]/total_fault_size)*100),2) + "\n")
         print("Time: " + str(time.perf_counter() - t1))
         csvFile.close()
 
