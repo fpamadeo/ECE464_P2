@@ -6,7 +6,8 @@ import threading
 import time
 import concurrent.futures
 import multiprocessing
-import tqdm 
+
+
 
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
@@ -817,13 +818,13 @@ def main():
             coresSize -= 1
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=coresSize) as executor:    
-            data = list(tqdm.tqdm(executor.map(extreme_simulator_helper, 
+            data = executor.map(extreme_simulator_helper, 
                 A,#map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #A
                 B,# map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #B
                 C,#map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #c
                 D,#map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #D
                 E,#map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #E
-                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]), total=thickness-1)) #batchsize
+                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]) #batchsize
 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
