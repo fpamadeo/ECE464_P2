@@ -740,44 +740,46 @@ def main():
     # NEED TO make a hook to find i can make this file
     if cktSimulation:
         csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
-        getSeed = open("TV_A.txt", "r")
+        getSeed = open(os.path.join(script_dir, "TV_A.txt"), "r")
         seed = getSeed.readline()
-        sig = 0
-        seedLength = 0
-        for s in seed:
-            if s == "1":
-                seedLength = sig
-            sig += 1
-        seed = seed[seedLength:sig-1]
-
+        seed = seed.replace("\n", "")
+        seed = int(seed[-8:],2)
         csvFile.write("Batch #, A, B, C, D, E, seed = " + str(seed) + ", Batch size = " + repr(batchSize) + "\n")
 
-    # if not cktOnly:
-    #     allFaults = genFaultList(circuit)
-    #     if genOnly:
-    #         exit()
-    #     faultFile = "f_list.txt"
-    #     activeFaults = readFaults(allFaults, faultFile)
-    #     if len(activeFaults) < 1:
-    #         print("ERROR: No compatible faults found in f_list.txt")
-    #         exit()
-    # keep an initial (unassigned any value) copy of the circuit for an easy reset
-    # newCircuit = copy.deepcopy(circuit)
+    if cktSimulation or extraCredit:
+        while True:
+            userInput = input("Press enter to use all the faults, else type in the name of the fault file:\n")
+            if userInput == "":
+                full_faults = genFaultList(circuit)
+                print("Processing\n")
+                break
+            else:
+                faultFile = os.path.join(script_dir, userInput)
+                if not os.path.isfile(cktFile):
+                    print("File does not exist. \n")
+                else:
+                    full_faults = readFaults(genFaultList(circuit), faultFile)
+                    print("Processing\n")
+                    break
+            
+            if len(full_faults) < 1:
+                print("ERROR: No compatible faults found in f_list.txt")
+                exit()
+
 
     # Note: UI code;
     # **************************************************************************************************************** #
 
     if cktSimulation:
-        full_faults = genFaultList(circuit)
         total_fault_size = len(full_faults)
 
         t1 = time.perf_counter()
 
-        tempA = TVSim(circuit, importTVs(open("TV_A.txt", "r")), full_faults, batchSize)
-        tempB = TVSim(circuit, importTVs(open("TV_B.txt", "r")), full_faults, batchSize)
-        tempC = TVSim(circuit, importTVs(open("TV_C.txt", "r")), full_faults, batchSize)
-        tempD = TVSim(circuit, importTVs(open("TV_D.txt", "r")), full_faults, batchSize)
-        tempE = TVSim(circuit, importTVs(open("TV_E.txt", "r")), full_faults, batchSize)
+        tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize)
+        tempB = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_B.txt"), "r")), full_faults, batchSize)
+        tempC = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_C.txt"), "r")), full_faults, batchSize)
+        tempD = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_D.txt"), "r")), full_faults, batchSize)
+        tempE = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_E.txt"), "r")), full_faults, batchSize)
 
         print(tempA)
         print(tempB)
@@ -798,7 +800,6 @@ def main():
    
     if extraCredit:
         t1 = time.perf_counter()
-        full_faults = genFaultList(circuit)
         inputSize = circuit["INPUT_WIDTH"][1]  # hold the number of inputs
         total_fault_size = len(full_faults)
         
@@ -812,15 +813,18 @@ def main():
             D = executor.map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
             E = executor.map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
 
+        coresSize = multiprocessing.cpu_count()
+        if(coresSize > 1):
+            coresSize -= 1
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()-1) as executor:    
+        with concurrent.futures.ProcessPoolExecutor(max_workers=coresSize) as executor:    
             data = executor.map(extreme_simulator_helper, 
                 A,#map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #A
                 B,# map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #B
                 C,#map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #c
                 D,#map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #D
                 E,#map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #E
-                [circuit for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]) #batchsize
+                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]) #batchsize
 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
@@ -844,7 +848,6 @@ def main():
         print("Time: " + str(time.perf_counter() - t1))
         csvFile.close()
 
-    input()
     # exit()
 
 
