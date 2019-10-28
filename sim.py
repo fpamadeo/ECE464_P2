@@ -622,8 +622,8 @@ def importTVs(TV_Stream):
     print("Not Enough TV's\nBad Input file\n")
     return 0
 
-def extreme_simulator_helper(A,B,C,D,E, circuit, batchSize): #B,C,D,E,
-    full_faults = genFaultList(circuit)
+def extreme_simulator_helper(A,B,C,D,E, circuit, batchSize, full_faults): #B,C,D,E,
+    
     tempA = TVSim(circuit, A, full_faults, batchSize)
     tempB = TVSim(circuit, B, full_faults, batchSize)
     tempC = TVSim(circuit, C, full_faults, batchSize)
@@ -659,6 +659,7 @@ def main():
             break
         elif userInput == "3":
             extraCredit = True
+            break
 
     # Select circuit benchmark file, default is circuit.bench
     while True:
@@ -750,9 +751,6 @@ def main():
 
         csvFile.write("Batch #, A, B, C, D, E, seed = " + str(seed) + ", Batch size = " + repr(batchSize) + "\n")
 
-    if extraCredit:
-        csvFile = open(os.path.join(script_dir, "f_avg_EXTRACREDIT.csv"), "w")
-
     # if not cktOnly:
     #     allFaults = genFaultList(circuit)
     #     if genOnly:
@@ -792,13 +790,15 @@ def main():
 
        
         print("Time: " + str(time.perf_counter() - t1))
-    csvFile.close()
+        csvFile.close()
 
 
     ###############################################################
    
     if extraCredit:
         t1 = time.perf_counter()
+        full_faults = genFaultList(circuit)
+        csvFile = open(os.path.join(script_dir, "f_avg_EXTRACREDIT.csv"), "w")
         csvFile.write("Batch #, A, B, C, D, E, seed = 1-255, Batch size = " + repr(batchSize) + "\n")
         thickness = 256 #2 is the minmium #256 maximimum
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -816,7 +816,7 @@ def main():
                 C,#map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #c
                 D,#map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #D
                 E,#map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #E
-                [circuit for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)]) #batchsize
+                [circuit for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]) #batchsize
 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
