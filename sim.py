@@ -564,7 +564,8 @@ def TVC_gen(counterBin, inputSize):
     for x in range(0, 255):
         tempBin = ""
         currVal = counterBin[x]
-        for _ in range(0, 5):
+        iteration = inputSize // 8 + 1
+        for _ in range(0, iteration):
             tempVal = str(bin(currVal)[2:].zfill(8))
             tempBin = tempVal + tempBin
             currVal += 1
