@@ -825,7 +825,7 @@ def main():
             holdthesim = list(x)
             #all_data.write("seed: " + str(count+1) + "; \n")
             for y in range(0, 5):
-                all_data.write(str(y) + ":  " + str(holdthesim[y]) + "\n")
+                #all_data.write(str(y) + ":  " + str(holdthesim[y]) + "\n")
                 for z in range(0, 25):
                     detection_Avg[y][z] += holdthesim[y][z]
         #all_data.close() #print(detection_Avg)
