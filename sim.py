@@ -838,9 +838,9 @@ def main():
                 detection_Avg[x][y] = detection_Avg[x][y]/(thickness-1) #divide by the input size to get the average
         
         for x in range(0, 25):
-            csvFile.write(str(x+1) + ", " + str(round((detection_Avg[0][x]/total_fault_size)*100),2) + ", " + str(round((detection_Avg[1][x]/total_fault_size)*100),2)
-                + ", " + str(round((detection_Avg[2][x]/total_fault_size)*100),2) + ", " + str(round((detection_Avg[3][x]/total_fault_size)*100),2) + ", " 
-                + str(round((detection_Avg[4][x]/total_fault_size)*100),2) + "\n")
+            csvFile.write(str(x+1) + ", " + str(round((detection_Avg[0][x]/total_fault_size)*100,2)) + ", " + str(round((detection_Avg[1][x]/total_fault_size)*100,2))
+                + ", " + str(round((detection_Avg[2][x]/total_fault_size)*100,2)) + ", " + str(round((detection_Avg[3][x]/total_fault_size)*100,2)) + ", " 
+                + str(round((detection_Avg[4][x]/total_fault_size)*100,2)) + "\n")
         print("Time: " + str(time.perf_counter() - t1))
         csvFile.close()
 
