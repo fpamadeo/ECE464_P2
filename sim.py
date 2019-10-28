@@ -629,7 +629,7 @@ def extreme_simulator_helper(A,B,C,D,E, circuit, batchSize, full_faults): #B,C,D
     tempC = TVSim(circuit, C, full_faults, batchSize)
     tempD = TVSim(circuit, D, full_faults, batchSize)
     tempE = TVSim(circuit, E, full_faults, batchSize)
-    print("Done with a seed")
+    #print("Done with a seed")
     return tempA, tempB, tempC, tempD, tempE
 
 # -------------------------------------------------------------------------------------------------------------------- #
