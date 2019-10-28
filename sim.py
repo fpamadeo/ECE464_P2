@@ -803,7 +803,7 @@ def main():
         
         csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
         csvFile.write("Batch #, A, B, C, D, E, seed = 1-255, Batch size = " + repr(batchSize) + "\n")
-        thickness = 10 #2 is the minmium #256 maximimum
+        thickness = 256 #2 is the minmium #256 maximimum
         with concurrent.futures.ProcessPoolExecutor() as executor:
             A = executor.map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) #inputsize
             B = executor.map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
