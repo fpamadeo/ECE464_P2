@@ -498,6 +498,7 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
             circuit[currentFault[0]][1].append(value)
 
         basic_sim(circuit, nodeLen)
+        len_of_inputs = len(goodOutput[0])
 
         donewithfaults = testsize#255
         done_queue = []
@@ -510,8 +511,8 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
                         print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                         break
                 
-                    starting_Position = ((batchSize*batch)+s) % 255 #try?
-                    ending_position = ((batchSize*(batch+1))+s) % 255
+                    starting_Position = ((batchSize*batch)+s) % len_of_inputs #try?
+                    ending_position = ((batchSize*(batch+1))+s) % len_of_inputs
 
                     if ending_position < starting_Position:
                         curr_Good = int("0" + goodOutput[increment][starting_Position:] + goodOutput[increment][:ending_position],2) 
@@ -860,13 +861,33 @@ def main():
         csvFile.write("Batch #, A, B, C, D, E, seed = 1-255, Batch size = " + repr(batchSize) + "\n")
         thickness = 256 #2 is the minmium #256 maximimum
 
-        counter = counterGen(1)
-        lfsrGenerator = lfsrGen(1)
-        A = TVA_gen(counter, inputSize) #inputsize
-        B = TVB_gen(counter, inputSize)
-        C = TVC_gen(counter, inputSize)
-        D = TVD_gen(lfsrGenerator, inputSize) 
-        E = TVE_gen(lfsrGenerator, inputSize) 
+        counter1 = counterGen(1)
+        lfsrGenerator1 = lfsrGen(1)
+        counter2 = counterGen(255)
+        lfsrGenerator2 = lfsrGen(255)
+        A = TVA_gen(counter1, inputSize) #inputsize
+        B = TVB_gen(counter1, inputSize)
+        C = TVC_gen(counter1, inputSize)
+        D = TVD_gen(lfsrGenerator1, inputSize) 
+        E = TVE_gen(lfsrGenerator1, inputSize) 
+
+        A1 = TVA_gen(counter2, inputSize) #inputsize
+        B1 = TVB_gen(counter2, inputSize)
+        C1 = TVC_gen(counter2, inputSize)
+        D1 = TVD_gen(lfsrGenerator2, inputSize) 
+        E1 = TVE_gen(lfsrGenerator2, inputSize) 
+
+        del A1[0]
+        del B1[0]
+        del C1[0]
+        del D1[0]
+        del E1[0]
+        
+        A.extend(A1)
+        B.extend(B1)
+        C.extend(C1)
+        D.extend(D1)
+        E.extend(E1)
 
         coresSize = multiprocessing.cpu_count()
         if(coresSize > 1):
@@ -884,12 +905,6 @@ def main():
                 [batchSize for _ in range(0, 5)], [True for _ in range(0, 5)]) 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
-
-        for x,d in enumerate(data):
-            if(x == 1):
-                for b,a in enumerate(d):
-                    print(str(b) + ": ", end="")
-                    print(a)
 
         for count,x in enumerate(data):
             holdthesim = list(x)
