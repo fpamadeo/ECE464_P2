@@ -681,15 +681,6 @@ def importTVs(TV_Stream):
     print("Not Enough TV's\nBad Input file\n")
     return 0
 
-def extreme_simulator_helper(A,B,C,D,E, circuit, batchSize, full_faults): #B,C,D,E,
-    
-    tempA = TVSim(circuit, A, full_faults, batchSize)
-    tempB = TVSim(circuit, B, full_faults, batchSize)
-    tempC = TVSim(circuit, C, full_faults, batchSize)
-    tempD = TVSim(circuit, D, full_faults, batchSize)
-    tempE = TVSim(circuit, E, full_faults, batchSize)
-    #print("Done with a seed")
-    return tempA, tempB, tempC, tempD, tempE
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: Main Function
@@ -894,13 +885,19 @@ def main():
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
 
+        for x,d in enumerate(data):
+            if(x == 1):
+                for b,a in enumerate(d):
+                    print(str(b) + ": ", end="")
+                    print(a)
+
         for count,x in enumerate(data):
             holdthesim = list(x)
             for y in range(0, 255):
                 for z in range(0, 25):
                     detection_Avg[count][z] += holdthesim[y][z]
 
-        print(detection_Avg, end="\n")
+        #print(detection_Avg, end="\n")
         for x in range(0, 5):
             for y in range(0, 25):
                 detection_Avg[x][y] = detection_Avg[x][y]/(255) #divide by the input size to get the average
