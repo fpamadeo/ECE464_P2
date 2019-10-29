@@ -477,7 +477,7 @@ def TVSim(circuit, TVbatch, fault_list, batchSize, EC):
 
 # FUNCTION:
 def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
-    testsize = 3
+    testsize = 255
     detectedFaults = [[0 for _ in range(0, 25)] for _ in range(0, testsize)]
 
     for x in activeFaults:
@@ -496,9 +496,10 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
             currentFault = currentFault.split("-IN-")
             circuit[currentFault[0]][1].remove("wire_" + currentFault[1])
             circuit[currentFault[0]][1].append(value)
+
         basic_sim(circuit, nodeLen)
 
-        donewithfaults = testsize3#255
+        donewithfaults = testsize#255
         done_queue = []
         for batch in range(0,25):
             for s in range(0, testsize): #"SEEDS"
@@ -509,15 +510,15 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
                         print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                         break
                 
-                    starting_Position = (batchSize*(batch+s)) % 255 #try?
-                    ending_position = (batchSize*(batch+1+s)) % 255
+                    starting_Position = ((batchSize*batch)+s) % 255 #try?
+                    ending_position = ((batchSize*(batch+1))+s) % 255
 
                     if ending_position < starting_Position:
-                        curr_Good = int(goodOutput[increment][starting_Position:] + goodOutput[increment][:ending_position],2) 
-                        curr_Fault = int(circuit[y][3][starting_Position:] + circuit[y][3][:ending_position],2)   
+                        curr_Good = int("0" + goodOutput[increment][starting_Position:] + goodOutput[increment][:ending_position],2) 
+                        curr_Fault = int("0" + circuit[y][3][starting_Position:] + circuit[y][3][:ending_position],2)   
                     else:
-                        curr_Good = int(goodOutput[increment][starting_Position:ending_position],2)
-                        curr_Fault = int(circuit[y][3][starting_Position:ending_position],2)
+                        curr_Good = int("0" + goodOutput[increment][starting_Position:ending_position],2)
+                        curr_Fault = int("0" + circuit[y][3][starting_Position:ending_position],2)
                     
                     XORed = curr_Fault ^ curr_Good
                     if XORed != 0: #detected a fault
@@ -832,16 +833,17 @@ def main():
 
         t1 = time.perf_counter()
 
-        tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize, True)
-        for y, ee in enumerate(tempA):
-            print(str(y),end=": ")
-            print(ee)
+        tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize, False)
         tempB = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_B.txt"), "r")), full_faults, batchSize, False)
         tempC = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_C.txt"), "r")), full_faults, batchSize, False)
         tempD = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_D.txt"), "r")), full_faults, batchSize, False)
         tempE = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_E.txt"), "r")), full_faults, batchSize, False)
 
         
+        # for y, ee in enumerate(tempA):
+        #     print(str(y),end=": ")
+        #     print(ee)
+        print(tempA)
         print(tempB)
         print(tempC)
         print(tempD)
@@ -866,40 +868,42 @@ def main():
         csvFile = open(os.path.join(script_dir, "f_avg.csv"), "w")
         csvFile.write("Batch #, A, B, C, D, E, seed = 1-255, Batch size = " + repr(batchSize) + "\n")
         thickness = 256 #2 is the minmium #256 maximimum
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            A = executor.map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) #inputsize
-            B = executor.map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
-            C = executor.map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
-            D = executor.map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
-            E = executor.map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]) 
+
+        counter = counterGen(1)
+        lfsrGenerator = lfsrGen(1)
+        A = TVA_gen(counter, inputSize) #inputsize
+        B = TVB_gen(counter, inputSize)
+        C = TVC_gen(counter, inputSize)
+        D = TVD_gen(lfsrGenerator, inputSize) 
+        E = TVE_gen(lfsrGenerator, inputSize) 
 
         coresSize = multiprocessing.cpu_count()
         if(coresSize > 1):
             coresSize -= 1
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=coresSize) as executor:    
-            data = list(tqdm.tqdm(executor.map(extreme_simulator_helper, 
-                A,#map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #A
-                B,# map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #B
-                C,#map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #c
-                D,#map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #D
-                E,#map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #E
-                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]), total=thickness-1)) #batchsize
+        # F_A = TVSim(circuit, A, full_faults, batchSize, True)
+        # F_B = TVSim(circuit, B, full_faults, batchSize, True)
+        # F_C = TVSim(circuit, C, full_faults, batchSize, True)
+        # F_D = TVSim(circuit, D, full_faults, batchSize, True)
+        # F_E = TVSim(circuit, E, full_faults, batchSize, True)
+        
 
+        with concurrent.futures.ProcessPoolExecutor(max_workers=coresSize) as executor:    
+            data = executor.map(TVSim, [copy.deepcopy(circuit) for _ in range(0, 5)], [A, B, C, D, E], [full_faults for _ in range(0, 5)],
+                [batchSize for _ in range(0, 5)], [True for _ in range(0, 5)]) 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
-        #all_data = open(os.path.join(script_dir, "Full_data.txt"), "w") #all_data.write("Batchsize: " + repr(batchSize) + "\n")
-        for x in data:
+
+        for count,x in enumerate(data):
             holdthesim = list(x)
-            #all_data.write("seed: " + str(count+1) + "; \n")
-            for y in range(0, 5):
-                #all_data.write(str(y) + ":  " + str(holdthesim[y]) + "\n")
+            for y in range(0, 255):
                 for z in range(0, 25):
-                    detection_Avg[y][z] += holdthesim[y][z]
-        #all_data.close() #print(detection_Avg)
+                    detection_Avg[count][z] += holdthesim[y][z]
+
+        print(detection_Avg, end="\n")
         for x in range(0, 5):
             for y in range(0, 25):
-                detection_Avg[x][y] = detection_Avg[x][y]/(thickness-1) #divide by the input size to get the average
+                detection_Avg[x][y] = detection_Avg[x][y]/(255) #divide by the input size to get the average
         
         for x in range(0, 25):
             csvFile.write(str(x+1) + ", " + str(round((detection_Avg[0][x]/total_fault_size)*100,2)) + ", " + str(round((detection_Avg[1][x]/total_fault_size)*100,2))
