@@ -924,7 +924,7 @@ def main():
         print("Time: " + str(time.perf_counter() - t1))
         csvFile.close()
 
-    # exit()
+    exit()
 
 
 if __name__ == "__main__":
