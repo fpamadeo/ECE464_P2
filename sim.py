@@ -477,15 +477,13 @@ def TVSim(circuit, TVbatch, fault_list, batchSize, EC):
 
 # FUNCTION:
 def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
-    detectedFaults = [[0 for _ in range(0, 25)] for _ in range(0, 255)]
+    testsize = 3
+    detectedFaults = [[0 for _ in range(0, 25)] for _ in range(0, testsize)]
 
     for x in activeFaults:
         # print("Current fault:", x)
         circuit = copy.deepcopy(inputCircuit)
-
         xSplit = x.split("-SA-")  # WAS  xSplit = x[0].split("-SA-")
-
-        # Get the value to which the node is stuck at
         value = xSplit[1]
         currentFault = "wire_" + xSplit[0]
         value = value * nodeLen
@@ -498,14 +496,12 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
             currentFault = currentFault.split("-IN-")
             circuit[currentFault[0]][1].remove("wire_" + currentFault[1])
             circuit[currentFault[0]][1].append(value)
-
         basic_sim(circuit, nodeLen)
 
-        len_of_circuit = len(goodOutput[0])
-        donewithfaults = 255#255
+        donewithfaults = testsize3#255
         done_queue = []
         for batch in range(0,25):
-            for s in range(0, 255): #"SEEDS"
+            for s in range(0, testsize): #"SEEDS"
                 if(s in done_queue):
                     continue
                 for increment, y in enumerate(circuit["OUTPUTS"][1]):
@@ -513,13 +509,10 @@ def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
                         print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
                         break
                 
-                    starting_Position = (batchSize*(batch+s)) #try?
-                    ending_position = (batchSize*(batch+1+s))
-                    if starting_Position >= len_of_circuit:
-                        starting_Position -= len_of_circuit
+                    starting_Position = (batchSize*(batch+s)) % 255 #try?
+                    ending_position = (batchSize*(batch+1+s)) % 255
 
-                    if ending_position >= len_of_circuit:
-                        ending_position -= len_of_circuit
+                    if ending_position < starting_Position:
                         curr_Good = int(goodOutput[increment][starting_Position:] + goodOutput[increment][:ending_position],2) 
                         curr_Fault = int(circuit[y][3][starting_Position:] + circuit[y][3][:ending_position],2)   
                     else:
@@ -840,7 +833,9 @@ def main():
         t1 = time.perf_counter()
 
         tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize, True)
-        print(*tempA, sep="\n")
+        for y, ee in enumerate(tempA):
+            print(str(y),end=": ")
+            print(ee)
         tempB = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_B.txt"), "r")), full_faults, batchSize, False)
         tempC = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_C.txt"), "r")), full_faults, batchSize, False)
         tempD = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_D.txt"), "r")), full_faults, batchSize, False)
