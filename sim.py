@@ -6,8 +6,7 @@ import threading
 import time
 import concurrent.futures
 import multiprocessing
-
-
+import tqdm 
 
 # Function List:
 # 1. netRead: read the benchmark file and build circuit netlist
@@ -420,7 +419,7 @@ def lfsrGen(seed):
 #   • circuit == circuit dictionary
 #   • TVbatch == Current batch number of TV_user_array
 #   • fault_list == the active fault_list
-def TVSim(circuit, TVbatch, fault_list, batchSize):
+def TVSim(circuit, TVbatch, fault_list, batchSize, EC):
     holdthecircuit = copy.deepcopy(circuit)
     # Counting increment on how many Input sets we are passing thru
     TVcount = 0
@@ -471,7 +470,72 @@ def TVSim(circuit, TVbatch, fault_list, batchSize):
         goodOutput.append(str(holdthecircuit[y][3]))
     #print("...done\n")
     #print("Simulating bad circuits...")
-    return fault_sim(fault_list, circReset, goodOutput, TVcount, batchSize)
+    if(EC):
+        return EC_fault_sim(fault_list, circReset, goodOutput, TVcount, batchSize)
+    else:
+        return fault_sim(fault_list, circReset, goodOutput, TVcount, batchSize)
+
+# FUNCTION:
+def EC_fault_sim(activeFaults, inputCircuit, goodOutput, nodeLen, batchSize):
+    detectedFaults = [[0 for _ in range(0, 25)] for _ in range(0, 255)]
+
+    for x in activeFaults:
+        # print("Current fault:", x)
+        circuit = copy.deepcopy(inputCircuit)
+
+        xSplit = x.split("-SA-")  # WAS  xSplit = x[0].split("-SA-")
+
+        # Get the value to which the node is stuck at
+        value = xSplit[1]
+        currentFault = "wire_" + xSplit[0]
+        value = value * nodeLen
+
+        if "-IN-" not in currentFault:
+            circuit[currentFault][3] = value
+            circuit[currentFault][2] = True
+
+        else:
+            currentFault = currentFault.split("-IN-")
+            circuit[currentFault[0]][1].remove("wire_" + currentFault[1])
+            circuit[currentFault[0]][1].append(value)
+
+        basic_sim(circuit, nodeLen)
+
+        len_of_circuit = len(goodOutput[0])
+        donewithfaults = 255#255
+        done_queue = []
+        for batch in range(0,25):
+            for s in range(0, 255): #"SEEDS"
+                if(s in done_queue):
+                    continue
+                for increment, y in enumerate(circuit["OUTPUTS"][1]):
+                    if not circuit[y][2]:
+                        print("NETLIST ERROR: OUTPUT LINE \"" + y + "\" NOT ACCESSED")
+                        break
+                
+                    starting_Position = (batchSize*(batch+s)) #try?
+                    ending_position = (batchSize*(batch+1+s))
+                    if starting_Position >= len_of_circuit:
+                        starting_Position -= len_of_circuit
+
+                    if ending_position >= len_of_circuit:
+                        ending_position -= len_of_circuit
+                        curr_Good = int(goodOutput[increment][starting_Position:] + goodOutput[increment][:ending_position],2) 
+                        curr_Fault = int(circuit[y][3][starting_Position:] + circuit[y][3][:ending_position],2)   
+                    else:
+                        curr_Good = int(goodOutput[increment][starting_Position:ending_position],2)
+                        curr_Fault = int(circuit[y][3][starting_Position:ending_position],2)
+                    
+                    XORed = curr_Fault ^ curr_Good
+                    if XORed != 0: #detected a fault
+                        donewithfaults -= 1
+                        done_queue.append(s)
+                        for temp in range(batch, 25):
+                            detectedFaults[s][temp] = detectedFaults[s][temp] + 1
+                        break 
+            if donewithfaults == 0:
+                break
+    return detectedFaults
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # FUNCTION: the actual simulation #
@@ -630,7 +694,7 @@ def extreme_simulator_helper(A,B,C,D,E, circuit, batchSize, full_faults): #B,C,D
     tempC = TVSim(circuit, C, full_faults, batchSize)
     tempD = TVSim(circuit, D, full_faults, batchSize)
     tempE = TVSim(circuit, E, full_faults, batchSize)
-    print("Done with a seed")
+    #print("Done with a seed")
     return tempA, tempB, tempC, tempD, tempE
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -775,13 +839,14 @@ def main():
 
         t1 = time.perf_counter()
 
-        tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize)
-        tempB = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_B.txt"), "r")), full_faults, batchSize)
-        tempC = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_C.txt"), "r")), full_faults, batchSize)
-        tempD = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_D.txt"), "r")), full_faults, batchSize)
-        tempE = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_E.txt"), "r")), full_faults, batchSize)
+        tempA = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_A.txt"), "r")), full_faults, batchSize, True)
+        print(*tempA, sep="\n")
+        tempB = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_B.txt"), "r")), full_faults, batchSize, False)
+        tempC = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_C.txt"), "r")), full_faults, batchSize, False)
+        tempD = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_D.txt"), "r")), full_faults, batchSize, False)
+        tempE = TVSim(circuit, importTVs(open(os.path.join(script_dir, "TV_E.txt"), "r")), full_faults, batchSize, False)
 
-        print(tempA)
+        
         print(tempB)
         print(tempC)
         print(tempD)
@@ -818,13 +883,13 @@ def main():
             coresSize -= 1
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=coresSize) as executor:    
-            data = executor.map(extreme_simulator_helper, 
+            data = list(tqdm.tqdm(executor.map(extreme_simulator_helper, 
                 A,#map(TVA_gen, map(counterGen, [seed1 for seed1 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #A
                 B,# map(TVB_gen, map(counterGen, [seed2 for seed2 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #B
                 C,#map(TVC_gen, map(counterGen, [seed3 for seed3 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #c
                 D,#map(TVD_gen, map(lfsrGen, [seed4 for seed4 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #D
                 E,#map(TVE_gen, map(lfsrGen, [seed5 for seed5 in range(1, thickness)]), [inputSize for _ in range(1, thickness)]), #E
-                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]) #batchsize
+                [copy.deepcopy(circuit) for _ in range(1, thickness)], [batchSize for _ in range(1, thickness)], [full_faults for _ in range(1, thickness)]), total=thickness-1)) #batchsize
 
         
         detection_Avg = [[0 for _ in range(0, 25)] for _ in range(0,5)] #initialize the 2d array
